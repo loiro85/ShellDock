@@ -20,5 +20,11 @@ enum DemoData {
         add("Escritorio remoto", .rdp, "10.0.0.20", "administrador", lab.id)
         add("Visor VNC", .vnc, "10.0.0.30", "", lab.id)
         s.openLocal()
+        if ProcessInfo.processInfo.environment["SHELLDOCK_DEMO_MULTI"] != nil {
+            s.openLocal(); s.openLocal()
+            s.multiExec = true
+            s.tabs.last?.excluded = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { s.send("echo escrito-en-todas-$$\r", toAll: true) }
+        }
     }
 }

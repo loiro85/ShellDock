@@ -4,27 +4,26 @@ struct TabBarView: View {
     @EnvironmentObject var state: AppState
 
     var body: some View {
-        HStack(spacing: 0) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 2) {
-                    ForEach(state.tabs) { tab in
-                        TabButton(tab: tab)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 2) {
+                ForEach(state.tabs) { tab in TabButton(tab: tab) }
+                Menu {
+                    Button("Terminal local") { state.openLocal() }
+                    Button("Mini Linux") { state.openMiniLinux() }
+                    Button("Nueva sesión…") { state.editing = Session() }
+                    if !state.store.sessions.isEmpty {
+                        Divider()
+                        ForEach(state.store.sessions.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }.prefix(25)) { s in
+                            Button(s.name) { state.open(session: s) }
+                        }
                     }
-                }
-                .padding(.horizontal, 6)
+                } label: {
+                    Image(systemName: "plus").font(.system(size: 13, weight: .semibold)).frame(width: 28, height: 28)
+                } primaryAction: { state.openLocal() }
+                .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+                .help("Nueva terminal local (⌘T). Mantén pulsado para elegir otra sesión")
             }
-            Divider().frame(height: 22)
-            Menu {
-                Button("Terminal local") { state.openLocal() }
-                Button("Nueva sesión…") { state.editing = Session() }
-                if !state.store.sessions.isEmpty {
-                    Divider()
-                    ForEach(state.store.sessions.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }.prefix(25)) { s in
-                        Button(s.name) { state.open(session: s) }
-                    }
-                }
-            } label: { Image(systemName: "plus") }
-            .menuStyle(.borderlessButton).frame(width: 34)
+            .padding(.horizontal, 6)
         }
         .frame(height: 34)
         .background(.bar)
@@ -52,7 +51,7 @@ struct TabButton: View {
             Image(systemName: tab.kind.symbol).font(.system(size: 11)).foregroundStyle(.secondary)
             Circle().fill(statusColor).frame(width: 6, height: 6)
             Text(tab.title).lineLimit(1).font(.system(size: 12, weight: selected ? .semibold : .regular)).frame(maxWidth: 170, alignment: .leading)
-            if tab.broadcast {
+            if state.multiExec && tab.acceptsInput && !tab.excluded {
                 Image(systemName: "dot.radiowaves.left.and.right").font(.system(size: 10)).foregroundStyle(.orange)
             }
             Button { state.closeTab(tab.id) } label: {
@@ -71,7 +70,7 @@ struct TabButton: View {
         .help(tab.status.label)
         .contextMenu {
             if tab.canReconnect { Button("Reconectar") { tab.reconnect() } }
-            Button(tab.broadcast ? "Quitar de MultiExec" : "Incluir en MultiExec") { tab.broadcast.toggle() }
+            if tab.acceptsInput { Button(tab.excluded ? "Incluir en MultiExec" : "Excluir de MultiExec") { tab.excluded.toggle() } }
             Menu("Color de pestaña") {
                 Button("Ninguno") { tab.tintHex = nil }
                 ForEach(Palette.colors, id: \.self) { hex in Button(Palette.name(hex)) { tab.tintHex = hex } }

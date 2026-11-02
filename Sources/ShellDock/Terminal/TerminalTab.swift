@@ -23,7 +23,9 @@ class TerminalTab: ObservableObject, Identifiable {
     @Published var title: String
     @Published var status: TabStatus = .connecting
     @Published var tintHex: String?
-    @Published var broadcast = false
+    /// MultiExec: la pestaña no recibe lo que se escribe en todas.
+    @Published var excluded = false
+    var acceptsInput: Bool { terminalView != nil }
     let kind: SessionKind
     var session: Session?
     weak var app: AppState?

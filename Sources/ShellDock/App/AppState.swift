@@ -10,6 +10,7 @@ final class AppState: ObservableObject {
     @Published var tabs: [TerminalTab] = []
     @Published var selectedTabID: UUID?
     @Published var multiExec = false
+    @Published var tiled = false
     @Published var sidebarVisible = true
     @Published var showFileBrowser = true
     @Published var editing: Session?
@@ -150,10 +151,13 @@ final class AppState: ObservableObject {
 
     // MARK: MultiExec y snippets
 
-    /// Envía texto a la pestaña activa o, con MultiExec, a todas las marcadas.
+    /// Pestañas que reciben lo que se escribe en MultiExec: todas las de terminal salvo las excluidas.
+    var multiTargets: [TerminalTab] { tabs.filter { $0.acceptsInput && !$0.excluded } }
+
+    /// Envía texto a la pestaña activa o, con MultiExec, a todas las no excluidas.
     func send(_ text: String, toAll: Bool = false) {
         if toAll || multiExec {
-            for t in tabs where t.broadcast || t.id == selectedTabID { t.sendText(text) }
+            for t in multiTargets { t.sendText(text) }
         } else {
             selectedTab?.sendText(text)
         }
@@ -161,7 +165,7 @@ final class AppState: ObservableObject {
 
     /// Ejecuta un snippet (con variables y pausas) en la pestaña activa o en todas las de MultiExec.
     func run(snippet: Snippet, toAll: Bool = false) {
-        let targets: [TerminalTab] = (toAll || multiExec) ? tabs.filter { $0.broadcast || $0.id == selectedTabID } : (selectedTab.map { [$0] } ?? [])
+        let targets: [TerminalTab] = (toAll || multiExec) ? multiTargets : (selectedTab.map { [$0] } ?? [])
         let clip = NSPasteboard.general.string(forType: .string) ?? ""
         Task { @MainActor in
             for tab in targets {
