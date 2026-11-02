@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 
 /// Datos de ejemplo para capturas (`--demo`). No se guardan en disco.
 @MainActor
@@ -25,7 +26,19 @@ enum DemoData {
             s.multiExec = true
             s.tabs.last?.excluded = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                if ProcessInfo.processInfo.environment["SHELLDOCK_DEMO_MULTI"] == "typing", let t = s.tabs.first as? ProcessTab {
+                if ProcessInfo.processInfo.environment["SHELLDOCK_DEMO_MULTI"] == "keys", let t = s.tabs.first as? ProcessTab {
+                    // pulsaciones reales: se encolan en NSApp y recorren el mismo camino que el teclado físico
+                    NSApp.activate(ignoringOtherApps: true)
+                    t.tv.window?.makeFirstResponder(t.tv)
+                    for ch in "echo teclas-$$\r" {
+                        let str = String(ch)
+                        if let e = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                                                    windowNumber: t.tv.window?.windowNumber ?? 0, context: nil, characters: str,
+                                                    charactersIgnoringModifiers: str, isARepeat: false, keyCode: ch == "\r" ? 36 : 0) {
+                            NSApp.postEvent(e, atStart: false)
+                        }
+                    }
+                } else if ProcessInfo.processInfo.environment["SHELLDOCK_DEMO_MULTI"] == "typing", let t = s.tabs.first as? ProcessTab {
                     // equivale a teclear en la primera terminal
                     t.tv.send(source: t.tv, data: Array("echo tecleado-$$\r".utf8)[...])
                 } else { s.send("echo escrito-en-todas-$$\r", toAll: true) }

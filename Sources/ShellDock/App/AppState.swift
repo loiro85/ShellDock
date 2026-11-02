@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import Combine
+import SwiftTerm
 
 /// Estado global de la ventana: pestañas, selección, MultiExec, ajustes.
 @MainActor
@@ -13,6 +14,7 @@ final class AppState: ObservableObject {
     @Published var tiled = false
     @Published var recordingTabID: UUID?
     private var recorded: [UInt8] = []
+    private var keyMonitor: Any?
     @Published var sidebarVisible = true
     @Published var showFileBrowser = true
     @Published var editing: Session?
@@ -50,6 +52,7 @@ final class AppState: ObservableObject {
 
     @discardableResult
     func add(_ tab: TerminalTab) -> TerminalTab {
+        installKeyMonitor()
         tab.app = self
         tabs.append(tab)
         selectedTabID = tab.id
@@ -173,11 +176,29 @@ final class AppState: ObservableObject {
 
     // MARK: MultiExec y snippets
 
-    /// Con MultiExec, lo que se teclea directamente en una terminal se repite en todas las demás no excluidas.
-    func mirrorInput(from source: TerminalTab, _ data: ArraySlice<UInt8>) {
-        guard multiExec, source.acceptsInput, !source.excluded else { return }
-        let text = String(decoding: data, as: UTF8.self)
-        for t in multiTargets where t !== source { t.sendText(text) }
+    /// SwiftTerm conecta el teclado de la terminal local directamente al proceso, sin pasar por el delegado.
+    /// Por eso se observan las teclas a nivel de aplicación: sirve a la grabación de macros y al espejo de MultiExec.
+    func installKeyMonitor() {
+        guard keyMonitor == nil else { return }
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] e in
+            MainActor.assumeIsolated { self?.observe(e) }
+            return e
+        }
+    }
+
+    private func observe(_ e: NSEvent) {
+        guard let tv = NSApp.keyWindow?.firstResponder as? TerminalView,
+              let tab = tabs.first(where: { $0.terminalView === tv }) else { return }
+        var text: String?
+        if e.modifierFlags.contains(.command) {
+            if e.charactersIgnoringModifiers == "v" { text = NSPasteboard.general.string(forType: .string) }
+        } else {
+            text = KeyCatcher.sequence(for: e)
+        }
+        guard let text, !text.isEmpty else { return }
+        tab.onUserInput?(Array(text.utf8)[...])
+        guard multiExec, !tab.excluded else { return }
+        for t in multiTargets where t !== tab { t.sendText(text) }     // la propia terminal ya recibe la tecla de forma nativa
     }
 
     // MARK: grabación de macros
