@@ -29,6 +29,7 @@ struct AppCommands: Commands {
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
             Button("Nueva terminal local") { state.openLocal() }.keyboardShortcut("t", modifiers: .command)
+            Button("Mini Linux interno") { state.openMiniLinux() }.keyboardShortcut("l", modifiers: [.command, .option])
             Button("Nueva sesión…") { state.editing = Session() }.keyboardShortcut("n", modifiers: .command)
             Button("Conexión rápida…") { NotificationCenter.default.post(name: .focusQuickConnect, object: nil) }.keyboardShortcut("k", modifiers: .command)
             Divider()
@@ -81,6 +82,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.activate(ignoringOtherApps: true)
+        if CommandLine.arguments.contains("--vm-selftest") { Task { @MainActor in await VMSelfTest.run() } }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
@@ -93,8 +95,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         else if let f = openFile, let d = try? Data(contentsOf: URL(fileURLWithPath: f)), let sess = try? JSONDecoder().decode(Session.self, from: d) { s.open(session: sess) }
         else if s.tabs.isEmpty { s.openLocal() }
         if let cmd = probe {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { s.selectedTab?.sendText(cmd + "\r") }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + (Double(ProcessInfo.processInfo.environment["SHELLDOCK_PROBE_WAIT"] ?? "") ?? 6.0) - 4.0) { s.selectedTab?.sendText(cmd + "\r") }
+            DispatchQueue.main.asyncAfter(deadline: .now() + (Double(ProcessInfo.processInfo.environment["SHELLDOCK_PROBE_WAIT"] ?? "") ?? 6.0)) {
                 if let tv = s.selectedTab?.terminalView {
                     tv.selectAll(nil)
                     print("=== BUFFER ===")
@@ -138,5 +140,47 @@ enum Snapshot {
             }
             NSApp.terminate(nil)
         }
+    }
+}
+
+
+/// Autoprueba de la VM: arranca Alpine, inicia sesión y ejecuta comandos (`--vm-selftest`).
+@MainActor
+enum VMSelfTest {
+    static func run() async {
+        func log(_ s: String) { FileHandle.standardOutput.write(Data((s + "\n").utf8)) }
+        log("VM soportada: \(MiniLinuxVM.supported)")
+        let vm = MiniLinuxVM()
+        var buffer = ""
+        vm.onOutput = { buffer += String(decoding: $0, as: UTF8.self) }
+        vm.onStopped = { e in log("VM detenida \(e ?? "")") }
+        do {
+            let assets = try await MiniLinuxVM.prepareAssets { FileHandle.standardOutput.write(Data(($0 + "\n").utf8)) }
+            log("imágenes listas: \(assets.kernel.lastPathComponent)")
+            let t0 = Date()
+            try await vm.start(assets: assets)
+            log("VM arrancando…")
+            func wait(_ needle: String, _ secs: Double) async -> Bool {
+                let end = Date().addingTimeInterval(secs)
+                while Date() < end { if buffer.contains(needle) { return true }; try? await Task.sleep(nanoseconds: 200_000_000) }
+                return false
+            }
+            if await wait("login:", 120) {
+                log("→ login detectado a los \(String(format: "%.1f", Date().timeIntervalSince(t0))) s")
+                buffer = ""
+                vm.send(Array("root\r".utf8))
+                if await wait("#", 20) {
+                    buffer = ""
+                    vm.send(Array("uname -a; cat /etc/alpine-release; echo FIN-$((6*7))\r".utf8))
+                    _ = await wait("FIN-42", 20)
+                    log("=== SALIDA DEL LINUX ===\n" + buffer + "\n=== FIN ===")
+                } else { log("sin prompt tras el login:\n" + buffer) }
+            } else {
+                log("no apareció 'login:'. Consola:\n" + buffer.suffix(3000))
+            }
+        } catch { log("ERROR: \(error.localizedDescription)") }
+        vm.stop(force: true)
+        try? await Task.sleep(nanoseconds: 500_000_000)
+        NSApp.terminate(nil)
     }
 }

@@ -51,10 +51,10 @@ enum SSHLauncher {
         return a
     }
 
-    static func environment(for s: Session?, extra: [String] = []) -> [String] {
+    static func environment(for s: Session?, extra: [String] = [], forceAskpass: Bool = false) -> [String] {
         var env = ProcessEnvironment.base()
         if let s {
-            if s.hasStoredPassword || s.hasStoredPassphrase {
+            if s.hasStoredPassword || s.hasStoredPassphrase || forceAskpass {
                 AskPass.install()
                 env.append("SHELLDOCK_ACCOUNT=\(s.id.uuidString)")
                 env.append("SHELLDOCK_SOCK=\(AskPassServer.shared.socketPath)")

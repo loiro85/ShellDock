@@ -13,10 +13,10 @@ struct FileBrowserPanel: View {
     @State private var permTarget: RemoteFile?
     @State private var dropTargeted = false
 
-    init(session: Session, tab: TerminalTab) {
+    init(session: Session, tab: TerminalTab, direct: Bool = false) {
         self.session = session
         self.tab = tab
-        _model = StateObject(wrappedValue: FileBrowserModel(session: session, hostKeyPolicy: "accept-new"))
+        _model = StateObject(wrappedValue: FileBrowserModel(session: session, hostKeyPolicy: "accept-new", direct: direct))
     }
 
     var body: some View {

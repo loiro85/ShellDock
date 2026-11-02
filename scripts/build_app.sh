@@ -36,5 +36,9 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   </array>
 </dict></plist>
 PLIST
-codesign --force --sign - --entitlements scripts/Entitlements.plist "$APP" 2>&1 | grep -v "replacing existing" || true
+pkill -f "$APP/Contents/MacOS" 2>/dev/null || true
+xattr -cr "$APP"
+codesign --force --sign "${SIGN_IDENTITY:--}" --entitlements scripts/Entitlements.plist "$APP"
+codesign --verify --deep --strict "$APP"
+codesign -d --entitlements - "$APP" 2>&1 | grep -q "com.apple.security.virtualization" || { echo "ERROR: falta el entitlement de virtualización"; exit 1; }
 echo "OK → $APP"

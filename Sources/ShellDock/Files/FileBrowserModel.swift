@@ -28,7 +28,8 @@ final class FileBrowserModel: ObservableObject {
 
     let session: Session
     private let hostKeyPolicy: String
-    private var client: SFTPClient?
+    private var client: (any RemoteFS)?
+    private let direct: Bool
     private var startTask: Task<Void, Never>?
     private var history: [String] = []
     private var watchers: [String: DispatchSourceFileSystemObject] = [:]
@@ -36,7 +37,9 @@ final class FileBrowserModel: ObservableObject {
     var terminalSend: ((String) -> Void)?
     static weak var last: FileBrowserModel?        // solo para diagnóstico (--probe)
 
-    init(session: Session, hostKeyPolicy: String) {
+    /// `direct`: sesiones SFTP/FTP propias (sin pestaña SSH); no hace falta esperar a una conexión maestra.
+    init(session: Session, hostKeyPolicy: String, direct: Bool = false) {
+        self.direct = direct
         self.session = session
         self.hostKeyPolicy = hostKeyPolicy
         Self.last = self
@@ -58,8 +61,9 @@ final class FileBrowserModel: ObservableObject {
     func start() {
         startTask?.cancel()
         state = .waiting
-        let s = session, policy = hostKeyPolicy
+        let s = session, policy = hostKeyPolicy, direct = self.direct
         startTask = Task { [weak self] in
+            if direct { await self?.connect(); return }
             // sesiones con credenciales guardadas pueden conectar por su cuenta; el resto espera al login
             let selfAuth = s.hasStoredPassword || s.hasStoredPassphrase || s.auth == .key || s.auth == .agent
             var waited = 0
@@ -77,11 +81,21 @@ final class FileBrowserModel: ObservableObject {
 
     private func connect() async {
         state = .connecting
+        if session.kind == .ftp {
+            let c = FTPClient(session: session)
+            do {
+                try await c.connect()
+                client = c
+                state = .ready
+                await navigate(to: "/", push: false)
+            } catch { state = .failed(error.localizedDescription) }
+            return
+        }
         let c = SFTPClient()
         do {
             try await c.start(executable: SSHLauncher.sshPath,
                               arguments: SSHLauncher.sftpSubsystemArguments(session, hostKeyPolicy: hostKeyPolicy),
-                              environment: SSHLauncher.environment(for: session))
+                              environment: SSHLauncher.environment(for: session, forceAskpass: direct))
             client = c
             let home = try await c.realpath(".")
             state = .ready
@@ -129,14 +143,14 @@ final class FileBrowserModel: ObservableObject {
         Task {
             guard let c = client else { return }
             var isDir = f.isDirectory
-            if f.isSymlink, let st = try? await c.stat(f.path) { isDir = st.isDirectory }
+            if f.isSymlink, let st = try? await c.stat(f.path, followLinks: true) { isDir = st.isDirectory }
             if isDir { await navigate(to: f.path) } else { edit(f) }
         }
     }
 
     // MARK: operaciones
 
-    private func run(_ what: String, _ op: @escaping (SFTPClient) async throws -> Void) {
+    private func run(_ what: String, _ op: @escaping (any RemoteFS) async throws -> Void) {
         guard let c = client else { return }
         Task {
             do { try await op(c); await navigate(to: path, push: false) }
@@ -144,7 +158,7 @@ final class FileBrowserModel: ObservableObject {
         }
     }
 
-    func makeFolder(_ name: String) { run("Crear carpeta") { try await $0.mkdir(self.path + (self.path == "/" ? "" : "/") + name) } }
+    func makeFolder(_ name: String) { run("Crear carpeta") { try await $0.mkdir(self.path + (self.path == "/" ? "" : "/") + name, mode: 0o755) } }
 
     func rename(_ f: RemoteFile, to name: String) {
         run("Renombrar") { try await $0.rename(f.path, to: (f.path as NSString).deletingLastPathComponent + "/" + name) }
@@ -205,16 +219,16 @@ final class FileBrowserModel: ObservableObject {
             } else {
                 let remote = dest + (dest == "/" ? "" : "/") + url.lastPathComponent
                 track(Transfer(name: url.lastPathComponent, direction: .upload)) { report in
-                    try await c.upload(local: url, to: remote, progress: report)
+                    try await c.upload(local: url, to: remote, mode: 0o644, progress: report)
                     await self.navigate(to: dest, push: false)
                 }
             }
         }
     }
 
-    private func uploadFolder(_ dir: URL, to remote: String, client c: SFTPClient) {
+    private func uploadFolder(_ dir: URL, to remote: String, client c: any RemoteFS) {
         track(Transfer(name: dir.lastPathComponent + "/", direction: .upload)) { report in
-            try? await c.mkdir(remote)
+            try? await c.mkdir(remote, mode: 0o755)
             let fm = FileManager.default
             var files: [(URL, String)] = []
             let base = dir.path
@@ -222,13 +236,13 @@ final class FileBrowserModel: ObservableObject {
                 for case let u as URL in en {
                     let rel = String(u.path.dropFirst(base.count + 1))
                     let isDir = (try? u.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
-                    if isDir { try? await c.mkdir(remote + "/" + rel) } else { files.append((u, rel)) }
+                    if isDir { try? await c.mkdir(remote + "/" + rel, mode: 0o755) } else { files.append((u, rel)) }
                 }
             }
             var done = 0
             for (u, rel) in files {
                 try Task.checkCancellation()
-                try await c.upload(local: u, to: remote + "/" + rel)
+                try await c.upload(local: u, to: remote + "/" + rel, mode: 0o644, progress: { _, _ in })
                 done += 1
                 report(Int64(done), Int64(files.count))
             }
@@ -251,12 +265,12 @@ final class FileBrowserModel: ObservableObject {
         }
     }
 
-    private func downloadFolder(_ remote: String, to local: URL, client c: SFTPClient, report: @escaping @Sendable (Int64, Int64) -> Void) async throws {
+    private func downloadFolder(_ remote: String, to local: URL, client c: any RemoteFS, report: @escaping @Sendable (Int64, Int64) -> Void) async throws {
         try FileManager.default.createDirectory(at: local, withIntermediateDirectories: true)
         for f in try await c.list(remote) {
             try Task.checkCancellation()
             if f.isDirectory { try await downloadFolder(f.path, to: local.appendingPathComponent(f.name), client: c, report: report) }
-            else { try await c.download(remote: f.path, to: local.appendingPathComponent(f.name)) }
+            else { try await c.download(remote: f.path, to: local.appendingPathComponent(f.name), progress: { _, _ in }) }
         }
         report(1, 1)
     }
@@ -298,7 +312,7 @@ final class FileBrowserModel: ObservableObject {
         }
     }
 
-    private func watch(local: URL, remote: String, client c: SFTPClient) {
+    private func watch(local: URL, remote: String, client c: any RemoteFS) {
         let fd = Darwin.open(local.path, O_EVTONLY)
         guard fd >= 0 else { return }
         let src = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: [.write, .extend, .rename, .delete], queue: .main)
@@ -308,7 +322,7 @@ final class FileBrowserModel: ObservableObject {
             let w = DispatchWorkItem {
                 guard FileManager.default.fileExists(atPath: local.path) else { return }
                 self?.track(Transfer(name: local.lastPathComponent + " (guardado)", direction: .upload)) { report in
-                    try await c.upload(local: local, to: remote, progress: report)
+                    try await c.upload(local: local, to: remote, mode: 0o644, progress: report)
                 }
             }
             debounce = w

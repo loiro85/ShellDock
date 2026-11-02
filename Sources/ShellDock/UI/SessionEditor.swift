@@ -108,7 +108,21 @@ struct SessionEditor: View {
                     SecureField("Frase de paso de la clave (Llavero)", text: $passphrase)
                 }
             }
+            if session.kind == .ftp {
+                Section("FTP") {
+                    SecureField("Contraseña (Llavero)", text: $password)
+                    Toggle("Cifrar con TLS (FTPS)", isOn: $session.ftpTLS)
+                }
+            }
             if session.kind == .serial { serialSection }
+            if session.kind == .miniLinux {
+                Section("Mini Linux (Alpine en una máquina virtual)") {
+                    Stepper(session.vmMemoryMB == 0 ? "Memoria: 1024 MB (predeterminado)" : "Memoria: \(session.vmMemoryMB) MB", value: $session.vmMemoryMB, in: 0...16384, step: 256)
+                    Stepper(session.vmCPUs == 0 ? "CPUs: automático" : "CPUs: \(session.vmCPUs)", value: $session.vmCPUs, in: 0...8)
+                    TextField("Carpeta compartida con el Mac (vacío = ~/ShellDock-Linux)", text: $session.sharedFolder)
+                    Text("La carpeta se ve dentro de Linux en /mnt/mac. El sistema vive en memoria: lo que guardes fuera de esa carpeta se pierde al apagar.").font(.caption).foregroundStyle(.secondary)
+                }
+            }
             if session.kind == .rdp {
                 Section("RDP") {
                     TextField("Dominio", text: $session.rdpDomain)

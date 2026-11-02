@@ -49,6 +49,15 @@ final class AppState: ObservableObject {
         return tab
     }
 
+    /// Abre una pestaña con el mini Linux interno (Alpine en una máquina virtual).
+    func openMiniLinux() {
+        var s = Session()
+        s.kind = .miniLinux
+        s.name = "Mini Linux"
+        s.port = 0
+        open(session: s)
+    }
+
     func openLocal() {
         let n = tabs.filter { $0.kind == .local }.count + 1
         add(makeLocalTab(title: n == 1 ? "Terminal local" : "Terminal local \(n)"))
@@ -77,6 +86,14 @@ final class AppState: ObservableObject {
             add(StreamTab(title: s.name, kind: .tcp, session: s) { TCPTransport(host: s.host, port: s.port) })
         case .serial:
             add(StreamTab(title: s.name, kind: .serial, session: s) { SerialTransport(settings: s.serial) })
+        case .miniLinux:
+            add(StreamTab(title: s.name, kind: .miniLinux, session: s) { VMConsoleTransport(session: s) })
+        case .vnc:
+            add(VNCTab(session: s))
+        case .sftp, .ftp:
+            add(FileTab(session: s))
+        case .rdp:
+            toast = RDPLauncher.open(s)
         default:
             toast = "\(s.kind.title): disponible en una fase posterior"
         }

@@ -143,6 +143,14 @@ struct Session: Codable, Identifiable, Hashable {
     // serie
     var serial = SerialSettings()
 
+    // FTP
+    var ftpTLS = false
+
+    // Mini Linux (VM)
+    var vmMemoryMB = 0
+    var vmCPUs = 0
+    var sharedFolder = ""
+
     // VNC / RDP
     var rdpDomain = ""
     var rdpResolution = ""

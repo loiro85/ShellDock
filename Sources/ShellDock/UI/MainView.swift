@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import SwiftTerm
 
 struct MainView: View {
     @EnvironmentObject var state: AppState
@@ -41,6 +42,7 @@ struct MainView: View {
             }
             ToolbarItemGroup(placement: .primaryAction) {
                 Button { state.openLocal() } label: { Image(systemName: "apple.terminal") }.help("Nueva terminal local (⌘T)")
+                Button { state.openMiniLinux() } label: { Image(systemName: "shippingbox") }.help("Mini Linux interno (⌥⌘L)")
                 Button { state.editing = Session() } label: { Image(systemName: "plus.circle") }.help("Nueva sesión (⌘N)")
                 Toggle(isOn: $state.multiExec) { Image(systemName: "dot.radiowaves.left.and.right") }
                     .toggleStyle(.button).help("MultiExec: escribir en todas las pestañas marcadas")
@@ -106,28 +108,46 @@ struct TabContentView: View {
 struct NSViewHost: NSViewRepresentable {
     let view: NSView
     let tabID: UUID
+    var inset: NSEdgeInsets = NSEdgeInsets(top: 6, left: 10, bottom: 4, right: 4)
 
     final class Container: NSView {
         var hosted: NSView?
-        func host(_ v: NSView) {
-            if hosted === v { return }
+        var inset = NSEdgeInsets()
+
+        override init(frame: NSRect) { super.init(frame: frame); wantsLayer = true }
+        required init?(coder: NSCoder) { fatalError() }
+
+        func host(_ v: NSView, inset: NSEdgeInsets) {
+            self.inset = inset
+            if hosted === v { syncBackground(); return }
             hosted?.removeFromSuperview()
             hosted = v
             v.removeFromSuperview()
-            v.frame = bounds
-            v.autoresizingMask = [.width, .height]
+            v.translatesAutoresizingMaskIntoConstraints = false
             addSubview(v)
+            NSLayoutConstraint.activate([
+                v.leadingAnchor.constraint(equalTo: leadingAnchor, constant: inset.left),
+                v.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -inset.right),
+                v.topAnchor.constraint(equalTo: topAnchor, constant: inset.top),
+                v.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -inset.bottom),
+            ])
+            syncBackground()
+        }
+
+        /// El margen toma el mismo color que el terminal para que no se note.
+        func syncBackground() {
+            layer?.backgroundColor = (hosted as? TerminalView)?.nativeBackgroundColor.cgColor ?? NSColor.windowBackgroundColor.cgColor
         }
     }
 
     func makeNSView(context: Context) -> Container {
         let c = Container()
-        c.host(view)
+        c.host(view, inset: view is TerminalView ? inset : NSEdgeInsets())
         return c
     }
 
     func updateNSView(_ c: Container, context: Context) {
-        c.host(view)
+        c.host(view, inset: view is TerminalView ? inset : NSEdgeInsets())
         DispatchQueue.main.async { c.window?.makeFirstResponder(view) }
     }
 }
