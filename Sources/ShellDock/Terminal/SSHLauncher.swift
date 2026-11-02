@@ -57,6 +57,8 @@ enum SSHLauncher {
             if s.hasStoredPassword || s.hasStoredPassphrase {
                 AskPass.install()
                 env.append("SHELLDOCK_ACCOUNT=\(s.id.uuidString)")
+                env.append("SHELLDOCK_SOCK=\(AskPassServer.shared.socketPath)")
+                env.append("SHELLDOCK_TOKEN=\(AskPassServer.shared.token)")
                 env.append("SSH_ASKPASS=\(Paths.askpassPath)")
                 env.append("SSH_ASKPASS_REQUIRE=force")
             }
@@ -141,25 +143,29 @@ enum ProcessEnvironment {
     }
 }
 
-/// Ayudante `SSH_ASKPASS`: entrega la contraseña/frase de paso del Llavero o la pide con un diálogo nativo.
+/// Ayudante `SSH_ASKPASS`: pide la contraseña/frase de paso a la app por un socket privado o muestra un diálogo nativo.
 enum AskPass {
     static let script = #"""
     #!/bin/sh
-    # ShellDock askpass: lee el secreto del Llavero (cuenta = id de sesión) o lo pide con un diálogo.
+    # ShellDock askpass. Variables: SHELLDOCK_ACCOUNT (id de sesión), SHELLDOCK_SOCK, SHELLDOCK_TOKEN.
     prompt="$1"
+    kind=password
     case "$prompt" in
-      *assphrase*) acc="${SHELLDOCK_ACCOUNT}.passphrase" ;;
-      *"(yes/no"*) /usr/bin/osascript -e 'on run argv' -e 'button returned of (display dialog (item 1 of argv) buttons {"no", "yes"} default button "yes" with title "ShellDock")' -e 'end run' "$prompt" 2>/dev/null; exit $? ;;
-      *) acc="${SHELLDOCK_ACCOUNT}" ;;
+      *assphrase*) kind=passphrase ;;
+      *"(yes/no"*)
+        [ -n "$SHELLDOCK_NODIALOG" ] && exit 1
+        /usr/bin/osascript -e 'on run argv' -e 'button returned of (display dialog (item 1 of argv) buttons {"no", "yes"} default button "yes" with title "ShellDock")' -e 'end run' "$prompt" 2>/dev/null; exit $? ;;
     esac
-    if [ -n "$SHELLDOCK_ACCOUNT" ]; then
-      pw=$(/usr/bin/security find-generic-password -s ShellDock -a "$acc" -w 2>/dev/null)
+    if [ -n "$SHELLDOCK_SOCK" ] && [ -n "$SHELLDOCK_ACCOUNT" ]; then
+      pw=$(printf '%s\t%s\t%s\n' "$SHELLDOCK_TOKEN" "$SHELLDOCK_ACCOUNT" "$kind" | /usr/bin/nc -U "$SHELLDOCK_SOCK" 2>/dev/null)
       if [ -n "$pw" ]; then printf '%s\n' "$pw"; exit 0; fi
     fi
+    [ -n "$SHELLDOCK_NODIALOG" ] && exit 1
     /usr/bin/osascript -e 'on run argv' -e 'text returned of (display dialog (item 1 of argv) default answer "" with hidden answer with title "ShellDock")' -e 'end run' "$prompt" 2>/dev/null
     """#
 
     static func install() {
+        AskPassServer.shared.start()
         let path = Paths.askpassPath
         let body = script.split(separator: "\n", omittingEmptySubsequences: false).map { $0.hasPrefix("    ") ? String($0.dropFirst(4)) : String($0) }.joined(separator: "\n")
         if (try? String(contentsOfFile: path, encoding: .utf8)) == body { return }

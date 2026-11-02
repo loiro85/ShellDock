@@ -17,6 +17,7 @@ struct MainView: View {
                 TabBarView()
                 Divider()
                 ContentArea()
+                if state.multiExec { MultiExecBar() }
             }
         }
         .toolbar {
@@ -156,5 +157,42 @@ enum SettingsOpener {
         if !NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil) {
             NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
         }
+    }
+}
+
+
+/// MultiExec: una barra de comandos que escribe en todas las pestañas marcadas a la vez.
+struct MultiExecBar: View {
+    @EnvironmentObject var state: AppState
+    @State private var text = ""
+
+    var targets: [TerminalTab] { state.tabs.filter { $0.broadcast } }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Divider()
+            HStack(spacing: 8) {
+                Image(systemName: "dot.radiowaves.left.and.right").foregroundStyle(.orange)
+                Text("MultiExec").font(.caption.bold())
+                TextField("Escribe un comando y pulsa Intro: se envía a \(targets.count) pestañas", text: $text)
+                    .textFieldStyle(.roundedBorder).font(.system(.body, design: .monospaced))
+                    .onSubmit { send() }
+                Button("Enviar") { send() }.disabled(targets.isEmpty || text.isEmpty)
+                Menu("Pestañas") {
+                    Button("Marcar todas") { for t in state.tabs { t.broadcast = true } }
+                    Button("Desmarcar todas") { for t in state.tabs { t.broadcast = false } }
+                    Divider()
+                    ForEach(state.tabs) { t in
+                        Button((t.broadcast ? "✓ " : "   ") + t.title) { t.broadcast.toggle() }
+                    }
+                }.frame(width: 90)
+            }.padding(8).background(.bar)
+        }
+    }
+
+    func send() {
+        guard !text.isEmpty else { return }
+        for t in targets { t.sendText(text + "\r") }
+        text = ""
     }
 }

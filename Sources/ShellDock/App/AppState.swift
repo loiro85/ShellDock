@@ -19,6 +19,7 @@ final class AppState: ObservableObject {
     @Published var showNetworkTools = false
     @Published var showKeys = false
     @Published var toast: String?
+    let tunnels = TunnelManager()
 
     private var bag = Set<AnyCancellable>()
 
@@ -70,6 +71,12 @@ final class AppState: ObservableObject {
             add(tab)
         case .local:
             add(makeLocalTab(title: s.name))
+        case .telnet:
+            add(StreamTab(title: s.name, kind: .telnet, session: s) { TelnetTransport(host: s.host, port: s.port) })
+        case .tcp:
+            add(StreamTab(title: s.name, kind: .tcp, session: s) { TCPTransport(host: s.host, port: s.port) })
+        case .serial:
+            add(StreamTab(title: s.name, kind: .serial, session: s) { SerialTransport(settings: s.serial) })
         default:
             toast = "\(s.kind.title): disponible en una fase posterior"
         }
@@ -135,9 +142,27 @@ final class AppState: ObservableObject {
         }
     }
 
-    func run(snippet: Snippet) {
-        send(snippet.text + (snippet.sendReturn ? "\r" : ""))
+    /// Ejecuta un snippet (con variables y pausas) en la pestaña activa o en todas las de MultiExec.
+    func run(snippet: Snippet, toAll: Bool = false) {
+        let targets: [TerminalTab] = (toAll || multiExec) ? tabs.filter { $0.broadcast || $0.id == selectedTabID } : (selectedTab.map { [$0] } ?? [])
+        let clip = NSPasteboard.general.string(forType: .string) ?? ""
+        Task { @MainActor in
+            for tab in targets {
+                let text = SnippetRunner.expand(snippet.text, session: tab.session, clipboard: clip)
+                let steps = SnippetRunner.steps(text, sendReturn: snippet.sendReturn)
+                Task { @MainActor in
+                    for step in steps {
+                        switch step {
+                        case .text(let t): tab.sendText(t); try? await Task.sleep(nanoseconds: 60_000_000)
+                        case .wait(let s): try? await Task.sleep(nanoseconds: UInt64(s * 1_000_000_000))
+                        }
+                    }
+                }
+            }
+        }
     }
+
+    func run(snippet: Snippet) { run(snippet: snippet, toAll: false) }
 
     func flash(_ message: String) {
         toast = message
