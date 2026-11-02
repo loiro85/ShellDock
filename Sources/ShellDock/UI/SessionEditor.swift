@@ -89,7 +89,7 @@ struct SessionEditor: View {
             }
             if session.kind.needsHost {
                 Section("Servidor") {
-                    TextField("Host o IP", text: $session.host)
+                    TextField(session.kind == .browser ? "Dirección web (https://…)" : "Host o IP", text: $session.host)
                     HStack {
                         TextField("Puerto", value: $session.port, format: .number.grouping(.never)).frame(width: 140)
                         Spacer()

@@ -25,6 +25,9 @@ final class FileBrowserModel: ObservableObject {
     @Published var loading = false
     @Published var transfers: [Transfer] = []
     @Published var message: String?
+    @Published var editorDoc: EditorDoc?
+    /// Editor interno (true) o la app predeterminada del sistema (false); lo fija el panel según los ajustes.
+    var useInternalEditor = true
 
     let session: Session
     private let hostKeyPolicy: String
@@ -144,7 +147,7 @@ final class FileBrowserModel: ObservableObject {
             guard let c = client else { return }
             var isDir = f.isDirectory
             if f.isSymlink, let st = try? await c.stat(f.path, followLinks: true) { isDir = st.isDirectory }
-            if isDir { await navigate(to: f.path) } else { edit(f) }
+            if isDir { await navigate(to: f.path) } else if useInternalEditor { editInternal(f) } else { edit(f) }
         }
     }
 
@@ -309,6 +312,34 @@ final class FileBrowserModel: ObservableObject {
                 NSWorkspace.shared.open(local)
                 self.watch(local: local, remote: f.path, client: c)
             }
+        }
+    }
+
+    /// Descarga el archivo y lo abre en el editor integrado (se guarda con ⌘S).
+    func editInternal(_ f: RemoteFile) {
+        guard let c = client else { return }
+        if f.size > 8 * 1024 * 1024 { message = "\(f.name) pesa más de 8 MB: se abre con la app del sistema"; edit(f); return }
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("shelldock-edit-\(UUID().uuidString.prefix(8))")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let local = dir.appendingPathComponent(f.name)
+        track(Transfer(name: f.name, direction: .download)) { report in
+            try await c.download(remote: f.path, to: local, progress: report)
+            guard let data = try? Data(contentsOf: local) else { return }
+            await MainActor.run {
+                guard let text = String(data: data, encoding: .utf8) else {
+                    self.message = "\(f.name) no es texto UTF-8: se abre con la app del sistema"
+                    NSWorkspace.shared.open(local); self.watch(local: local, remote: f.path, client: c); return
+                }
+                self.editorDoc = EditorDoc(name: f.name, remotePath: f.path, local: local, text: text)
+            }
+        }
+    }
+
+    func saveEditor(_ doc: EditorDoc, text: String) {
+        guard let c = client else { return }
+        do { try text.write(to: doc.local, atomically: true, encoding: .utf8) } catch { message = error.localizedDescription; return }
+        track(Transfer(name: doc.name + " (guardado)", direction: .upload)) { report in
+            try await c.upload(local: doc.local, to: doc.remotePath, mode: 0o644, progress: report)
         }
     }
 

@@ -29,6 +29,7 @@ struct FileBrowserPanel: View {
         .background(Color(nsColor: .controlBackgroundColor).opacity(0.6))
         .onAppear {
             model.terminalSend = { [weak tab] text in tab?.sendText(text) }
+            model.useInternalEditor = state.settings.data.internalEditor
             if model.state == .waiting { model.start() }
         }
         .onDisappear { }
@@ -50,6 +51,9 @@ struct FileBrowserPanel: View {
             TextField("Nombre", text: $folderName)
             Button("Crear") { if !folderName.isEmpty { model.makeFolder(folderName) } }
             Button("Cancelar", role: .cancel) {}
+        }
+        .sheet(item: $model.editorDoc) { doc in
+            TextEditorSheet(doc: doc) { text in model.saveEditor(doc, text: text) }
         }
         .sheet(item: $permTarget) { f in PermissionsSheet(file: f) { mode in model.chmod(f, mode: mode) } }
     }

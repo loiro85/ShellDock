@@ -1,7 +1,7 @@
 import Foundation
 
 enum SessionKind: String, Codable, CaseIterable, Identifiable {
-    case ssh, sftp, telnet, tcp, serial, vnc, rdp, ftp, local, miniLinux
+    case ssh, sftp, telnet, tcp, serial, vnc, rdp, ftp, local, miniLinux, mosh, rlogin, browser
     var id: String { rawValue }
 
     var title: String {
@@ -16,6 +16,9 @@ enum SessionKind: String, Codable, CaseIterable, Identifiable {
         case .ftp: return "FTP"
         case .local: return "Terminal local"
         case .miniLinux: return "Mini Linux"
+        case .mosh: return "Mosh"
+        case .rlogin: return "Rlogin"
+        case .browser: return "Navegador"
         }
     }
 
@@ -31,12 +34,16 @@ enum SessionKind: String, Codable, CaseIterable, Identifiable {
         case .ftp: return "arrow.up.arrow.down.square"
         case .local: return "apple.terminal"
         case .miniLinux: return "shippingbox"
+        case .mosh: return "bolt.horizontal.circle"
+        case .rlogin: return "arrow.right.to.line"
+        case .browser: return "globe"
         }
     }
 
     var defaultPort: Int {
         switch self {
-        case .ssh, .sftp: return 22
+        case .ssh, .sftp, .mosh: return 22
+        case .rlogin: return 513
         case .telnet: return 23
         case .tcp: return 0
         case .vnc: return 5900
@@ -46,7 +53,7 @@ enum SessionKind: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    var needsHost: Bool { [.ssh, .sftp, .telnet, .tcp, .vnc, .rdp, .ftp].contains(self) }
+    var needsHost: Bool { [.ssh, .sftp, .telnet, .tcp, .vnc, .rdp, .ftp, .mosh, .rlogin, .browser].contains(self) }
 }
 
 enum AuthMethod: String, Codable, CaseIterable, Identifiable {

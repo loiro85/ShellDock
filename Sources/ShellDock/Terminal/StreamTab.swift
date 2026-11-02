@@ -30,7 +30,11 @@ final class StreamTab: TerminalTab, TerminalViewDelegate {
 
     private func wire() {
         transport.onOpen = { [weak self] in self?.status = .connected }
-        transport.onData = { [weak self] bytes in self?.tv.feed(byteArray: bytes[...]) }
+        transport.onData = { [weak self] bytes in
+            guard let self else { return }
+            let hl = self.app?.settings.data.highlightKeywords ?? false
+            self.tv.feed(byteArray: (hl ? KeywordHighlighter.process(bytes) : bytes)[...])
+        }
         transport.onClose = { [weak self] err in
             guard let self, !self.closedByUser else { return }
             self.status = err == nil ? .closed : .failed(err!)
@@ -55,7 +59,7 @@ final class StreamTab: TerminalTab, TerminalViewDelegate {
 
     // MARK: TerminalViewDelegate
 
-    func send(source: TerminalView, data: ArraySlice<UInt8>) { transport.send(Array(data)) }
+    func send(source: TerminalView, data: ArraySlice<UInt8>) { onUserInput?(data); transport.send(Array(data)) }
     func sizeChanged(source: TerminalView, newCols: Int, newRows: Int) { transport.resize(cols: newCols, rows: newRows) }
     func setTerminalTitle(source: TerminalView, title: String) {}
     func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {}

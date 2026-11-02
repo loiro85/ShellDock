@@ -11,6 +11,8 @@ final class AppState: ObservableObject {
     @Published var selectedTabID: UUID?
     @Published var multiExec = false
     @Published var tiled = false
+    @Published var recordingTabID: UUID?
+    private var recorded: [UInt8] = []
     @Published var sidebarVisible = true
     @Published var showFileBrowser = true
     @Published var editing: Session?
@@ -19,13 +21,19 @@ final class AppState: ObservableObject {
     @Published var showSnippets = false
     @Published var showNetworkTools = false
     @Published var showKeys = false
+    @Published var showUtilities = false
+    @Published var showServers = false
+    @Published var locked = MasterPassword.isSet
+    let httpServer = HTTPFileServer()
     @Published var toast: String?
     let tunnels = TunnelManager()
 
     private var bag = Set<AnyCancellable>()
 
     init(store: SessionStore? = nil, settings: AppSettings? = nil) {
-        let st = store ?? SessionStore()
+        // con --demo los datos de ejemplo van a un archivo temporal: nunca ensucian las sesiones reales
+        let demoURL = FileManager.default.temporaryDirectory.appendingPathComponent("shelldock-demo-\(UUID().uuidString).json")
+        let st = store ?? (CommandLine.arguments.contains("--demo") ? SessionStore(url: demoURL) : SessionStore())
         let se = settings ?? AppSettings()
         self.store = st
         self.settings = se
@@ -95,6 +103,16 @@ final class AppState: ObservableObject {
             add(FileTab(session: s))
         case .rdp:
             toast = RDPLauncher.open(s)
+        case .rlogin:
+            add(StreamTab(title: s.name, kind: .rlogin, session: s) { RloginTransport(host: s.host, port: s.port, user: s.username) })
+        case .browser:
+            add(WebTab(session: s))
+        case .mosh:
+            guard let exe = MoshLauncher.executable() else { toast = "Mosh no está instalado: brew install mosh"; return }
+            let toolbox = settings.data.keepToolboxInPath
+            add(ProcessTab(title: s.name, kind: .mosh, session: s) {
+                LaunchSpec(executable: exe, args: MoshLauncher.arguments(for: s), env: ProcessEnvironment.base(toolbox: toolbox), cwd: NSHomeDirectory(), display: "mosh \(s.host)")
+            })
         default:
             toast = "\(s.kind.title): disponible en una fase posterior"
         }
@@ -107,6 +125,10 @@ final class AppState: ObservableObject {
         var kind = SessionKind.ssh
         if let r = t.range(of: "://") {
             let scheme = String(t[t.startIndex..<r.lowerBound]).lowercased()
+            if scheme == "http" || scheme == "https" {
+                var w = Session(); w.kind = .browser; w.name = text; w.host = text
+                open(session: w); return
+            }
             kind = SessionKind(rawValue: scheme) ?? .ssh
             t = String(t[r.upperBound...])
         }
@@ -150,6 +172,27 @@ final class AppState: ObservableObject {
     }
 
     // MARK: MultiExec y snippets
+
+    // MARK: grabación de macros
+
+    func startRecording() {
+        guard let tab = selectedTab, tab.acceptsInput else { flash("Selecciona una terminal para grabar"); return }
+        recorded = []
+        recordingTabID = tab.id
+        tab.onUserInput = { [weak self] d in self?.recorded.append(contentsOf: d) }
+        flash("Grabando macro… vuelve a pulsar Macros → Detener")
+    }
+
+    func stopRecording() {
+        guard let id = recordingTabID else { return }
+        tabs.first { $0.id == id }?.onUserInput = nil
+        recordingTabID = nil
+        let text = MacroRecorder.text(from: recorded)
+        guard !text.isEmpty else { flash("Macro vacía: no se guardó"); return }
+        var sn = Snippet(); sn.name = "Macro \(Date().formatted(date: .omitted, time: .standard))"; sn.text = text
+        store.snippets.append(sn)
+        flash("Macro guardada: \(sn.name)")
+    }
 
     /// Pestañas que reciben lo que se escribe en MultiExec: todas las de terminal salvo las excluidas.
     var multiTargets: [TerminalTab] { tabs.filter { $0.acceptsInput && !$0.excluded } }

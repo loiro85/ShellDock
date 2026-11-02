@@ -153,3 +153,46 @@ extension Array {
         return (0...(count - n)).map { self[$0..<($0 + n)] }
     }
 }
+
+@MainActor
+final class RloginTests: XCTestCase {
+    func testHandshakeBytes() {
+        XCTAssertEqual(RloginTransport.handshake(local: "me", remote: "root", terminal: "vt/9600"),
+                       [0] + Array("me".utf8) + [0] + Array("root".utf8) + [0] + Array("vt/9600".utf8) + [0])
+    }
+
+    func testRoundTripAgainstFakeServer() async throws {
+        let t = TransportTests()
+        let (srv, file) = try t.startPython("""
+        import socket
+        s=socket.socket(); s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1); s.bind(('127.0.0.1',23513)); s.listen(1)
+        print('READY',flush=True)
+        c,_=s.accept()
+        hs=b''
+        while hs.count(b'\\0')<4: hs+=c.recv(256)
+        c.sendall(b'\\0login ok\\r\\n')
+        c.recv(16)
+        c.sendall(b'echo:'+hs.split(b'\\0')[2])
+        import time; time.sleep(2)
+        """)
+        defer { srv.terminate(); try? FileManager.default.removeItem(at: file) }
+        let r = RloginTransport(host: "127.0.0.1", port: 23513, user: "root")
+        var got = [UInt8]()
+        r.onData = { got += $0 }
+        r.open()
+        let ok = await t.waitFor { String(decoding: got, as: UTF8.self).contains("login ok") }
+        XCTAssertTrue(ok)
+        XCTAssertFalse(got.contains(0), "el byte 0 de confirmación no llega al terminal")
+        r.send(Array("x".utf8))
+        let echoed = await t.waitFor { String(decoding: got, as: UTF8.self).contains("echo:root") }
+        XCTAssertTrue(echoed, "el servidor recibió el usuario remoto en el saludo")
+        r.close()
+    }
+}
+
+final class MoshArgsTests: XCTestCase {
+    func testArguments() {
+        var s = Session(); s.host = "h"; s.username = "u"; s.port = 2200
+        XCTAssertEqual(MoshLauncher.arguments(for: s), ["--ssh=ssh -p 2200", "u@h"])
+    }
+}

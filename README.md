@@ -2,13 +2,20 @@
 
 Cliente de terminal y herramientas remotas para macOS, inspirado en el flujo de trabajo de MobaXterm (aplicación original, sin código ni recursos de terceros).
 
-Incluye: terminal local, SSH (con panel SFTP que reutiliza la conexión), SFTP/FTP/FTPS, Telnet, TCP crudo, puerto serie, visor VNC nativo, lanzador RDP, túneles SSH, snippets, MultiExec, escáner de puertos, Wake-on-LAN, gestor de claves, importador de sesiones `.mxtsessions` y un **Mini Linux** (Alpine en una VM con Virtualization.framework y carpeta compartida en `/mnt/mac`). Sin límite de sesiones.
+Incluye:
+- **Sesiones:** terminal local, SSH (con panel SFTP que reutiliza la conexión y salto por bastión), SFTP/FTP/FTPS, Telnet, Rlogin, TCP crudo, puerto serie, Mosh (si está instalado), VNC nativo, RDP (lanzador), Navegador web y **Mini Linux** (Alpine en una VM, carpeta compartida en `/mnt/mac`). Sin límite de sesiones; importador de `.mxtsessions`.
+- **Interfaz tipo MobaXterm:** cinta con iconos y texto, árbol de sesiones, pestañas con «+», panel de archivos con arrastrar y soltar, editor de texto integrado, barra de monitorización remota (CPU, memoria, disco, uptime).
+- **MultiExec:** muestra todas las terminales en cuadrícula; lo que se teclea va a todas, con casilla *Exclude* en cada una. **Dividir** muestra las terminales a la vez sin MultiExec.
+- **Productividad:** macros (grabar y reproducir), snippets con variables y pausas, túneles SSH, resaltado de palabras clave (Telnet/TCP/serie), contraseña maestra opcional.
+- **Herramientas:** escáner de puertos, ping/traceroute/DNS/whois, Wake-on-LAN, claves SSH, generador de contraseñas, hashes, Base64/URL/Hex, calculadora de subredes, fecha Unix, servidor HTTP de archivos.
 
 ## Compilar
     scripts/build_app.sh      # genera dist/ShellDock.app (firma ad-hoc con entitlement de virtualización)
-    swift test                # 31 pruebas
+    swift test                # 49 pruebas
 
 ## Limitaciones conocidas
+- El resaltado de palabras clave aún no se aplica a SSH ni a la terminal local (SwiftTerm no permite interceptar su salida).
+- Sin servidor X11 propio (usa XQuartz), sin XDMCP, sin gestor de paquetes MobApt (en Mini Linux se usa `apk`).
 - RDP se abre con «Windows App» / Microsoft Remote Desktop (no incrustado; requeriría FreeRDP).
 - X11 requiere XQuartz.
 - Mini Linux necesita el entitlement `com.apple.security.virtualization`; para distribuir hace falta firmar con Developer ID.

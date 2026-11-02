@@ -25,7 +25,10 @@ struct SettingsView: View {
             Form {
                 Section("Comportamiento") {
                     Toggle("Usar Option como tecla Meta (Alt)", isOn: $settings.data.optionAsMeta)
+                    Toggle("Barra de monitorización remota (CPU, memoria, disco) en pestañas SSH", isOn: $settings.data.remoteMonitor)
                     Toggle("Copiar al seleccionar", isOn: $settings.data.copyOnSelect)
+                    Toggle("Resaltar palabras clave (error, warning, IPs…) en Telnet/TCP/serie", isOn: $settings.data.highlightKeywords)
+                    Toggle("Editar archivos remotos con el editor interno", isOn: $settings.data.internalEditor)
                     Toggle("Confirmar al cerrar pestañas activas", isOn: $settings.data.confirmClose)
                     Stepper("Historial de desplazamiento: \(settings.data.scrollback) líneas", value: $settings.data.scrollback, in: 1000...200000, step: 1000)
                 }
@@ -49,6 +52,7 @@ struct SettingsView: View {
                     Stepper("Ancho del panel SFTP: \(settings.data.sftpPanelWidth) px", value: $settings.data.sftpPanelWidth, in: 220...640, step: 20)
                 }
             }.formStyle(.grouped).tabItem { Label("SSH", systemImage: "lock.shield") }
+            MasterPasswordSettings().tabItem { Label("Seguridad", systemImage: "lock") }
         }
         .frame(width: 560, height: 440)
     }
@@ -66,5 +70,32 @@ struct ThemePreview: View {
         }
         .font(.system(.body, design: .monospaced)).padding(10)
         .background(Color(nsColor: NSColor(hex: theme.background)), in: RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+
+struct MasterPasswordSettings: View {
+    @State private var pw = ""
+    @State private var again = ""
+    @State private var enabled = MasterPassword.isSet
+    @State private var note = ""
+
+    var body: some View {
+        Form {
+            Section("Contraseña maestra") {
+                Text(enabled ? "Activada: ShellDock se bloquea al abrirse." : "Desactivada.").foregroundStyle(.secondary)
+                SecureField("Nueva contraseña", text: $pw)
+                SecureField("Repite la contraseña", text: $again)
+                HStack {
+                    Button(enabled ? "Cambiar" : "Activar") {
+                        guard !pw.isEmpty, pw == again else { note = "Las contraseñas no coinciden"; return }
+                        MasterPassword.set(pw); enabled = true; pw = ""; again = ""; note = "Guardada"
+                    }
+                    if enabled { Button("Desactivar", role: .destructive) { MasterPassword.remove(); enabled = false; note = "Desactivada" } }
+                    Text(note).foregroundStyle(.secondary)
+                }
+                Text("Bloquea el acceso a la ventana. Las contraseñas de las sesiones siguen protegidas por el Llavero de macOS.").font(.caption).foregroundStyle(.secondary)
+            }
+        }.formStyle(.grouped)
     }
 }

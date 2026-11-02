@@ -19,8 +19,19 @@ struct Ribbon: View {
             RibbonMenu(icon: "wrench.and.screwdriver", label: "Herramientas") {
                 Button("Herramientas de red") { state.showNetworkTools = true }
                 Button("Claves SSH") { state.showKeys = true }
+                Button("Utilidades (contraseñas, hashes, subred…)") { state.showUtilities = true }
+                Button("Servidor HTTP de archivos") { state.showServers = true }
+                if MasterPassword.isSet { Button("Bloquear ShellDock") { state.locked = true } }
             }
-            RibbonButton(icon: "text.badge.checkmark", label: "Macros", help: "Snippets y macros") { state.showSnippets = true }
+            RibbonMenu(icon: state.recordingTabID == nil ? "text.badge.checkmark" : "record.circle", label: "Macros") {
+                if state.recordingTabID == nil { Button("● Grabar macro") { state.startRecording() } }
+                else { Button("■ Detener y guardar") { state.stopRecording() } }
+                Button("Gestionar macros y snippets…") { state.showSnippets = true }
+                if !state.store.snippets.isEmpty {
+                    Divider()
+                    ForEach(state.store.snippets.prefix(15)) { sn in Button("▶ " + sn.name) { state.run(snippet: sn) } }
+                }
+            }
             RibbonButton(icon: "arrow.left.arrow.right.square", label: "Túneles", help: "Túneles SSH") { state.showTunnels = true }
             Divider().frame(height: 36).padding(.horizontal, 4)
             RibbonButton(icon: "sidebar.left", label: "Sesiones", help: "Mostrar/ocultar la lista de sesiones (⌘B)", active: state.sidebarVisible) { state.sidebarVisible.toggle() }

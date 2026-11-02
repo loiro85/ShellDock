@@ -257,3 +257,120 @@ final class KeysTests: XCTestCase {
         XCTAssertEqual((attrs[.posixPermissions] as? NSNumber)?.intValue, 0o600, "clave privada con permisos 600")
     }
 }
+
+final class HighlightAndMacroTests: XCTestCase {
+    func testHighlightsPlainErrorsAndIPs() {
+        let out = String(decoding: KeywordHighlighter.process(Array("ERROR: host 10.0.0.1 is up\r\n".utf8)), as: UTF8.self)
+        XCTAssertTrue(out.contains("\u{1b}[1;31mERROR\u{1b}[0m"))
+        XCTAssertTrue(out.contains("\u{1b}[35m10.0.0.1\u{1b}[0m"))
+        XCTAssertTrue(out.contains("\u{1b}[32mup\u{1b}[0m"))
+    }
+
+    func testLeavesFullScreenSequencesAlone() {
+        let raw = Array("\u{1b}[2J\u{1b}[Herror".utf8)
+        XCTAssertEqual(KeywordHighlighter.process(raw), raw)
+    }
+
+    func testKeepsExistingColorsAndHighlightsOutsideThem() {
+        let out = String(decoding: KeywordHighlighter.process(Array("\u{1b}[34mdir\u{1b}[0m failed".utf8)), as: UTF8.self)
+        XCTAssertTrue(out.hasPrefix("\u{1b}[34mdir\u{1b}[0m"))
+        XCTAssertTrue(out.contains("\u{1b}[1;31mfailed"))
+    }
+
+    func testMacroTextHandlesBackspaceAndArrows() {
+        let bytes: [UInt8] = Array("ls -x".utf8) + [0x7F] + Array("l\r".utf8) + [0x1B, 0x5B, 0x41] + Array("pwd\r".utf8)
+        XCTAssertEqual(MacroRecorder.text(from: bytes), "ls -l\npwd")
+    }
+
+    func testSettingsDecodeOldFileWithoutNewKeys() throws {
+        let old = #"{"fontName":"Monaco","fontSize":15}"#.data(using: .utf8)!
+        let s = try JSONDecoder().decode(AppSettingsData.self, from: old)
+        XCTAssertEqual(s.fontName, "Monaco"); XCTAssertEqual(s.fontSize, 15)
+        XCTAssertTrue(s.highlightKeywords); XCTAssertEqual(s.scrollback, 20000)
+    }
+}
+
+final class RemoteMonitorTests: XCTestCase {
+    func testParse() {
+        let r = RemoteStats.parse("L=0.52 0.40 0.30\nM=7943 2381\nD=100 50 47%\nU=up 3 days, 2 hours\nN=8\n")
+        XCTAssertEqual(r.load, "0.52 0.40 0.30"); XCTAssertEqual(r.memPercent, 29)
+        XCTAssertEqual(r.diskPercent, "47%"); XCTAssertEqual(r.cpus, 8); XCTAssertEqual(r.uptime, "up 3 days, 2 hours")
+    }
+
+    func testLiveAgainstTestServer() throws {
+        try TestServer.skipIfUnavailable()
+        let r = try XCTUnwrap(RemoteMonitor.fetch(TestServer.session(), hostKeyPolicy: "no"))
+        XCTAssertGreaterThan(r.cpus, 0); XCTAssertFalse(r.load.isEmpty); XCTAssertTrue(r.diskPercent.hasSuffix("%"))
+    }
+}
+
+final class UtilitiesTests: XCTestCase {
+    func testPasswordRespectsLengthAndClasses() {
+        let p = Utilities.password(length: 24)
+        XCTAssertEqual(p.count, 24)
+        XCTAssertTrue(p.contains { $0.isUppercase }); XCTAssertTrue(p.contains { $0.isLowercase }); XCTAssertTrue(p.contains { $0.isNumber })
+        XCTAssertTrue(Utilities.password(length: 30, upper: false, lower: false, digits: true, symbols: false).allSatisfy { $0.isNumber })
+        XCTAssertNotEqual(Utilities.password(length: 24), Utilities.password(length: 24))
+    }
+
+    func testHashesKnownVectors() {
+        let h = Dictionary(uniqueKeysWithValues: Utilities.hashes(of: Data("abc".utf8)))
+        XCTAssertEqual(h["MD5"], "900150983cd24fb0d6963f7d28e17f72")
+        XCTAssertEqual(h["SHA-1"], "a9993e364706816aba3e25717850c26c9cd0d89d")
+        XCTAssertEqual(h["SHA-256"], "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
+    }
+
+    func testEncodings() {
+        XCTAssertEqual(Utilities.base64Encode("hola"), "aG9sYQ==")
+        XCTAssertEqual(Utilities.base64Decode("aG9sYQ=="), "hola")
+        XCTAssertEqual(Utilities.urlEncode("a b&c"), "a%20b%26c")
+        XCTAssertEqual(Utilities.hexDecode(Utilities.hexEncode("añ")), "añ")
+        XCTAssertNil(Utilities.hexDecode("zz"))
+    }
+
+    func testSubnet() {
+        let s = Utilities.subnet("192.168.1.77/24")
+        XCTAssertEqual(s?.network, "192.168.1.0"); XCTAssertEqual(s?.broadcast, "192.168.1.255")
+        XCTAssertEqual(s?.mask, "255.255.255.0"); XCTAssertEqual(s?.first, "192.168.1.1"); XCTAssertEqual(s?.last, "192.168.1.254")
+        XCTAssertEqual(s?.hosts, 254)
+        XCTAssertEqual(Utilities.subnet("10.0.0.0/8")?.hosts, 16_777_214)
+        XCTAssertEqual(Utilities.subnet("10.0.0.1/32")?.hosts, 1)
+        XCTAssertNil(Utilities.subnet("300.0.0.0/8")); XCTAssertNil(Utilities.subnet("1.2.3.4/33"))
+    }
+
+    func testEpoch() { XCTAssertTrue(Utilities.epochToDate("0")?.contains("1970-01-01T00:00:00Z") == true) }
+
+    func testMasterPasswordDerivation() {
+        let salt = [UInt8](repeating: 7, count: 16)
+        XCTAssertEqual(MasterPassword.derive("x", salt: salt, rounds: 10), MasterPassword.derive("x", salt: salt, rounds: 10))
+        XCTAssertNotEqual(MasterPassword.derive("x", salt: salt, rounds: 10), MasterPassword.derive("y", salt: salt, rounds: 10))
+    }
+}
+
+final class HTTPServerTests: XCTestCase {
+    func testResponsesAndTraversalProtection() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("sd-http-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root.appendingPathComponent("sub"), withIntermediateDirectories: true)
+        try "hola".write(to: root.appendingPathComponent("a.txt"), atomically: true, encoding: .utf8)
+        let r = root.standardizedFileURL.resolvingSymlinksInPath()
+        let ok = HTTPFileServer.response(for: "/a.txt", root: r)
+        XCTAssertEqual(ok.0, "200 OK"); XCTAssertEqual(String(data: ok.2, encoding: .utf8), "hola"); XCTAssertTrue(ok.1.hasPrefix("text/plain"))
+        XCTAssertTrue(String(data: HTTPFileServer.response(for: "/", root: r).2, encoding: .utf8)!.contains("a.txt"))
+        XCTAssertEqual(HTTPFileServer.response(for: "/nope", root: r).0, "404 Not Found")
+        XCTAssertEqual(HTTPFileServer.response(for: "/../../etc/passwd", root: r).0, "403 Forbidden")
+        XCTAssertEqual(HTTPFileServer.response(for: "/%2e%2e/%2e%2e/etc/passwd", root: r).0, "403 Forbidden")
+    }
+
+    @MainActor func testLiveServer() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("sd-http2-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        try "contenido".write(to: root.appendingPathComponent("f.txt"), atomically: true, encoding: .utf8)
+        let srv = HTTPFileServer()
+        try srv.start(folder: root, port: 28080)
+        defer { srv.stop() }
+        for _ in 0..<50 where !srv.running { try await Task.sleep(nanoseconds: 100_000_000) }
+        let (data, resp) = try await URLSession.shared.data(from: URL(string: "http://127.0.0.1:28080/f.txt")!)
+        XCTAssertEqual((resp as? HTTPURLResponse)?.statusCode, 200)
+        XCTAssertEqual(String(data: data, encoding: .utf8), "contenido")
+    }
+}

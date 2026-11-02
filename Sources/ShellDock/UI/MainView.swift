@@ -29,6 +29,9 @@ struct MainView: View {
         .sheet(isPresented: $state.showTunnels) { TunnelsView().environmentObject(state) }
         .sheet(isPresented: $state.showNetworkTools) { NetworkToolsView().environmentObject(state) }
         .sheet(isPresented: $state.showKeys) { KeysView().environmentObject(state) }
+        .sheet(isPresented: $state.showUtilities) { UtilitiesView() }
+        .sheet(isPresented: $state.showServers) { ServersView().environmentObject(state) }
+        .overlay { if state.locked { LockView() } }
         .overlay(alignment: .bottom) {
             if let t = state.toast {
                 Text(t).padding(.horizontal, 14).padding(.vertical, 8)
@@ -62,6 +65,16 @@ struct TabContentView: View {
     @EnvironmentObject var state: AppState
 
     var body: some View {
+        VStack(spacing: 0) {
+            panels
+            if state.settings.data.remoteMonitor, tab.kind == .ssh, let s = tab.session {
+                Divider()
+                MonitorBar(session: s, hostKeyPolicy: state.settings.data.hostKeyPolicy).id(tab.id)
+            }
+        }
+    }
+
+    var panels: some View {
         HStack(spacing: 0) {
             if state.showFileBrowser, let s = tab.fileBrowserSession {
                 FileBrowserPanel(session: s, tab: tab)

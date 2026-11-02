@@ -266,3 +266,49 @@ final class SerialTransport: ByteTransport {
         if notify { onClose?(msg) }
     }
 }
+
+// MARK: Rlogin (RFC 1282)
+
+/// Rlogin sobre TCP: envía "\0usuario_local\0usuario_remoto\0terminal/velocidad\0" y descarta el byte 0 de confirmación.
+@MainActor
+final class RloginTransport: ByteTransport {
+    var onOpen: (() -> Void)?
+    var onData: (([UInt8]) -> Void)?
+    var onClose: ((String?) -> Void)?
+    private let inner: TCPTransport
+    private let user: String
+    private var acked = false
+
+    init(host: String, port: Int, user: String) {
+        inner = TCPTransport(host: host, port: port)
+        self.user = user.isEmpty ? NSUserName() : user
+    }
+
+    func open() {
+        inner.onOpen = { [weak self] in
+            guard let self else { return }
+            self.inner.send(Self.handshake(local: NSUserName(), remote: self.user))
+            self.onOpen?()
+        }
+        inner.onData = { [weak self] bytes in
+            guard let self else { return }
+            var b = bytes[...]
+            if !self.acked, b.first == 0 { b = b.dropFirst(); self.acked = true }
+            if !b.isEmpty { self.acked = true; self.onData?(Array(b)) }
+        }
+        inner.onClose = { [weak self] e in self?.onClose?(e) }
+        inner.open()
+    }
+
+    static func handshake(local: String, remote: String, terminal: String = "xterm-256color/38400") -> [UInt8] {
+        [0] + Array(local.utf8) + [0] + Array(remote.utf8) + [0] + Array(terminal.utf8) + [0]
+    }
+
+    func send(_ bytes: [UInt8]) { inner.send(bytes) }
+    func resize(cols: Int, rows: Int) {
+        // ventana: 0xFF 0xFF 's' 's' filas columnas píxeles-x píxeles-y (big-endian)
+        func be(_ v: Int) -> [UInt8] { [UInt8((v >> 8) & 255), UInt8(v & 255)] }
+        inner.send([255, 255, 0x73, 0x73] + be(rows) + be(cols) + be(0) + be(0))
+    }
+    func close() { inner.close() }
+}

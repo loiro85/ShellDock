@@ -30,6 +30,8 @@ class TerminalTab: ObservableObject, Identifiable {
     var session: Session?
     weak var app: AppState?
     var onClosed: ((TerminalTab) -> Void)?
+    /// Observa lo que teclea el usuario (grabación de macros).
+    var onUserInput: ((ArraySlice<UInt8>) -> Void)?
 
     init(title: String, kind: SessionKind, session: Session? = nil) {
         self.title = title
@@ -74,7 +76,7 @@ enum TabAppearance {
 /// Pestaña con un proceso en un pty: terminal local, SSH, mini Linux por consola...
 @MainActor
 final class ProcessTab: TerminalTab, LocalProcessTerminalViewDelegate {
-    let tv = LocalProcessTerminalView(frame: NSRect(x: 0, y: 0, width: 800, height: 500))
+    let tv = TappedTerminalView(frame: NSRect(x: 0, y: 0, width: 800, height: 500))
     private let makeSpec: () -> LaunchSpec
     private var reconnectTask: Task<Void, Never>?
     private var closedByUser = false
@@ -85,6 +87,7 @@ final class ProcessTab: TerminalTab, LocalProcessTerminalViewDelegate {
         self.makeSpec = spec
         super.init(title: title, kind: kind, session: session)
         tv.processDelegate = self
+        tv.onInput = { [weak self] d in self?.onUserInput?(d) }
     }
 
     override var content: NSView { tv }
@@ -146,5 +149,14 @@ final class ProcessTab: TerminalTab, LocalProcessTerminalViewDelegate {
         } else if kind == .local, let app {
             app.closeTab(id)           // al hacer `exit` en el shell local se cierra la pestaña
         }
+    }
+}
+
+/// Terminal local que avisa de lo tecleado antes de enviarlo al proceso.
+final class TappedTerminalView: LocalProcessTerminalView {
+    var onInput: ((ArraySlice<UInt8>) -> Void)?
+    override func send(source: TerminalView, data: ArraySlice<UInt8>) {
+        onInput?(data)
+        super.send(source: source, data: data)
     }
 }
