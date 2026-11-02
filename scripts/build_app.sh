@@ -9,8 +9,11 @@ for a in "$@"; do
 done
 swift build -c "$CONF" ${ARCHS[@]+"${ARCHS[@]}"} 2>&1 | grep -E "error:|Build complete" | sed -E 's/\x1b\[[0-9;]*m//g' || true
 BIN="$(swift build -c "$CONF" ${ARCHS[@]+"${ARCHS[@]}"} --show-bin-path)/ShellDock"
-APP="dist/ShellDock.app"
-rm -rf "$APP"; mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+FINAL="dist/ShellDock.app"
+# se firma en un directorio fuera de carpetas sincronizadas (iCloud/File Provider añade xattrs que invalidan la firma)
+WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
+APP="$WORK/ShellDock.app"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/ShellDock"
 [ -f scripts/AppIcon.icns ] && cp scripts/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 VER=$(cat VERSION 2>/dev/null || echo 0.1.0)
@@ -36,9 +39,12 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   </array>
 </dict></plist>
 PLIST
-pkill -f "$APP/Contents/MacOS" 2>/dev/null || true
+pkill -f "ShellDock.app/Contents/MacOS" 2>/dev/null || true
 xattr -cr "$APP"
 codesign --force --sign "${SIGN_IDENTITY:--}" --entitlements scripts/Entitlements.plist "$APP"
 codesign --verify --deep --strict "$APP"
 codesign -d --entitlements - "$APP" 2>&1 | grep -q "com.apple.security.virtualization" || { echo "ERROR: falta el entitlement de virtualización"; exit 1; }
 echo "OK → $APP"
+rm -rf "$FINAL"; mkdir -p dist; ditto --noextattr --noqtn "$APP" "$FINAL"
+xattr -cr "$FINAL" 2>/dev/null || true
+echo "App: $FINAL"
