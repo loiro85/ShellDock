@@ -24,7 +24,12 @@ enum DemoData {
             s.openLocal(); s.openLocal()
             s.multiExec = true
             s.tabs.last?.excluded = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { s.send("echo escrito-en-todas-$$\r", toAll: true) }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                if ProcessInfo.processInfo.environment["SHELLDOCK_DEMO_MULTI"] == "typing", let t = s.tabs.first as? ProcessTab {
+                    // equivale a teclear en la primera terminal
+                    t.tv.send(source: t.tv, data: Array("echo tecleado-$$\r".utf8)[...])
+                } else { s.send("echo escrito-en-todas-$$\r", toAll: true) }
+            }
         }
     }
 }

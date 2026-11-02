@@ -173,6 +173,13 @@ final class AppState: ObservableObject {
 
     // MARK: MultiExec y snippets
 
+    /// Con MultiExec, lo que se teclea directamente en una terminal se repite en todas las demás no excluidas.
+    func mirrorInput(from source: TerminalTab, _ data: ArraySlice<UInt8>) {
+        guard multiExec, source.acceptsInput, !source.excluded else { return }
+        let text = String(decoding: data, as: UTF8.self)
+        for t in multiTargets where t !== source { t.sendText(text) }
+    }
+
     // MARK: grabación de macros
 
     func startRecording() {

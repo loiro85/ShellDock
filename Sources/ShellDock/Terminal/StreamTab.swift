@@ -59,7 +59,7 @@ final class StreamTab: TerminalTab, TerminalViewDelegate {
 
     // MARK: TerminalViewDelegate
 
-    func send(source: TerminalView, data: ArraySlice<UInt8>) { onUserInput?(data); transport.send(Array(data)) }
+    func send(source: TerminalView, data: ArraySlice<UInt8>) { userTyped(data); transport.send(Array(data)) }
     func sizeChanged(source: TerminalView, newCols: Int, newRows: Int) { transport.resize(cols: newCols, rows: newRows) }
     func setTerminalTitle(source: TerminalView, title: String) {}
     func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {}

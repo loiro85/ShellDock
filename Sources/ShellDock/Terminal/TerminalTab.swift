@@ -33,6 +33,12 @@ class TerminalTab: ObservableObject, Identifiable {
     /// Observa lo que teclea el usuario (grabación de macros).
     var onUserInput: ((ArraySlice<UInt8>) -> Void)?
 
+    /// Llamar cuando el usuario teclea en esta pestaña: alimenta la grabación de macros y el espejo de MultiExec.
+    func userTyped(_ d: ArraySlice<UInt8>) {
+        onUserInput?(d)
+        app?.mirrorInput(from: self, d)
+    }
+
     init(title: String, kind: SessionKind, session: Session? = nil) {
         self.title = title
         self.kind = kind
@@ -87,7 +93,7 @@ final class ProcessTab: TerminalTab, LocalProcessTerminalViewDelegate {
         self.makeSpec = spec
         super.init(title: title, kind: kind, session: session)
         tv.processDelegate = self
-        tv.onInput = { [weak self] d in self?.onUserInput?(d) }
+        tv.onInput = { [weak self] d in if self?.sendingProgrammatically == false { self?.userTyped(d) } }
     }
 
     override var content: NSView { tv }
@@ -120,8 +126,13 @@ final class ProcessTab: TerminalTab, LocalProcessTerminalViewDelegate {
         start()
     }
 
+    /// `send(txt:)` pasa por el mismo camino que el teclado; se marca para no confundirlo con una pulsación real.
+    private var sendingProgrammatically = false
+
     override func sendText(_ s: String) {
+        sendingProgrammatically = true
         tv.send(txt: s)
+        sendingProgrammatically = false
     }
 
     // MARK: LocalProcessTerminalViewDelegate
