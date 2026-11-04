@@ -1,0 +1,415 @@
+Terminal local
+Terminal local %@
+No se abre la sesión: %@
+Mosh no está instalado: brew install mosh
+%@: disponible en una fase posterior
+¿Abrir una conexión %@?
+Una página web o aplicación pide conectar a %@%@:%@. Conecta solo si reconoces el servidor.
+Conectar
+Cancelar
+Selecciona una terminal para grabar
+Grabando macro… vuelve a pulsar Macros → Detener
+Macro vacía: no se guardó
+Macro %@
+ShellDock
+Nueva terminal local
+Mini Linux interno
+Nueva sesión…
+Conexión rápida…
+Cerrar pestaña
+Reconectar pestaña
+Buscar en la terminal…
+Resultado siguiente
+Resultado anterior
+Pestañas
+Pestaña siguiente
+Pestaña anterior
+Ir a la pestaña %@
+Herramientas
+MultiExec (escribir en varias pestañas)
+Snippets y macros
+Túneles SSH
+Herramientas de red
+Claves SSH
+Ocultar sesiones
+Mostrar sesiones
+Ocultar panel de archivos
+Mostrar panel de archivos
+curl terminó con código %@
+No existe
+No se detectó la conexión SSH
+Renombrar
+Eliminar
+Permisos
+Descargar aquí
+Subir
+%@ pesa más de 8 MB: se abre con la app del sistema
+%@ no es texto UTF-8: se abre con la app del sistema
+Nombre
+Nueva carpeta
+Crear
+Atrás
+Carpeta superior
+Carpeta personal
+Actualizar
+Subir archivos…
+Descargar selección…
+Mostrar archivos ocultos
+Ruta
+Esperando la conexión SSH…
+Abriendo SFTP…
+Reintentar
+Abrir
+Editar / abrir
+Descargar…
+Renombrar…
+Permisos…
+Copiar ruta
+Ir ahí en el terminal (cd)
+Transferencias
+Limpiar
+Permisos de %@
+Leer
+Escribir
+Ejecutar
+Propietario
+Grupo
+Otros
+Octal:
+Aplicar
+Fin de fichero
+Permiso denegado
+Fallo
+Mensaje mal formado
+Sin conexión
+Conexión perdida
+Operación no soportada
+Error %@
+La conexión SFTP se cerró
+No se pudo lanzar ssh: %@
+No se pudo abrir SFTP (¿conexión SSH no disponible?)
+No se puede escribir %@
+No se puede leer %@
+El archivo es demasiado grande para abrirlo aquí
+  ● sin guardar
+Guardar
+Cerrar
+%@ líneas · %@ bytes · UTF-8
+Hay cambios sin guardar
+Guardar y cerrar
+Descartar cambios
+alias ll='ls -la'; PS1='\\[\\e[1;32m\\]\\u@shelldock-linux\\[\\e[0m\\]:\\[\\e[1;34m\\]\\w\\[\\e[0m\\]# '; 
+Este Mac no admite máquinas virtuales (Virtualization.framework).
+No se pudo preparar la imagen de Alpine: %@
+Configuración de la VM no válida: %@
+La VM no arrancó: %@
+Descargando Alpine Linux (~90 MB, solo la primera vez)…
+la imagen descargada no coincide con el SHA-256 oficial de Alpine (no se usará)
+Extrayendo kernel e initramfs…
+no se pudo extraer %@
+kernel zboot con cabecera inválida
+no se pudo descomprimir el kernel
+Mini Linux (Alpine %@) — preparando…
+Arrancando la máquina virtual (%@ CPU, %@ MB)…
+TCP crudo
+Serie
+Navegador
+Automático
+Contraseña
+Clave privada
+Agente SSH
+Local (-L)
+Remoto (-R)
+Dinámico SOCKS (-D)
+Nueva sesión
+máquina virtual
+Carpeta
+Nuevo snippet
+Túnel
+RDP: no se pudo crear el archivo (%@)
+RDP: instala «Windows App» (Mac App Store) para abrir sesiones de escritorio remoto
+RDP: abierto con %@
+El servidor VNC pide contraseña
+No se pudo conectar: %@
+Autenticación VNC rechazada%@
+conexión cerrada
+Solo se admiten direcciones http y https
+Falta el host
+Host demasiado largo
+El host contiene caracteres no válidos
+El usuario contiene caracteres no válidos
+Escribe un host
+Host no válido
+Conectando…
+Conectado
+Cerrada
+señal
+Terminó con código %@
+No se puede abrir %@: %@
+Puerto cerrado
+\n[terminado con código %@]\n
+No se pudo ejecutar: %@\n
+Interfaces de red
+Tabla de rutas
+Conexiones activas
+Tabla ARP
+Monitor remoto: esperando datos…
+Ya existe %@
+Parado
+Iniciando…
+Activo
+ssh terminó con código %@
+Generar clave
+Tipo
+Huella
+Comentario
+Clave pública
+Copiar clave pública
+Clave pública copiada
+Añadir al agente
+Añadida al agente y al Llavero
+Mostrar en Finder
+Instalar en un servidor…
+Eliminar clave
+No hay claves en ~/.ssh
+Nombre del archivo
+Ed25519 (recomendado)
+RSA
+ECDSA
+Bits
+Frase de paso (opcional)
+Generar
+Terminales, SSH, SFTP, túneles y mucho más, sin límites.
+No hay terminales abiertas
+Exclude
+MultiExec
+Haz clic y teclea: se escribe en %@ terminal%@ (⌘V pega, Ctrl-C interrumpe)
+Marcar todas
+Excluir todas
+Diagnóstico
+Escáner de puertos
+Escáner de red
+Wake-on-LAN
+Herramienta
+host o IP
+Detener
+puertos: 22,80,8000-8100
+Escanear
+Escaneando…
+Red, p. ej. 192.168.1.0/24
+Buscar equipos
+Escanear puertos
+Buscando…
+Red no válida o demasiado grande (máximo /22)
+Enciende un equipo de la red local enviando un «paquete mágico» a su dirección MAC.
+MAC: AA:BB:CC:DD:EE:FF
+Enviar
+Paquete enviado
+MAC no válida o envío fallido
+Sesión
+Nueva sesión (⌘N)
+Terminal
+Linux interno en una máquina virtual (⌥⌘L)
+Nueva sesión SFTP
+Utilidades (contraseñas, hashes, subred…)
+Servidor HTTP de archivos
+Bloquear ShellDock
+Macros
+● Grabar macro
+■ Detener y guardar
+Gestionar macros y snippets…
+Túneles
+Sesiones
+Mostrar/ocultar la lista de sesiones (⌘B)
+Dividir
+Ver todas las terminales a la vez
+Escribir en todas las terminales a la vez
+Ajustes
+Preferencias
+Conexión rápida (⌘K)
+Editar sesión
+General
+SSH avanzado
+Apariencia
+Guardar y conectar
+(raíz)
+Color
+Ninguno
+Servidor
+Dirección web (https://…)
+Host o IP
+Puerto
+Usuario
+Autenticación
+Método
+Contraseña (se guarda en el Llavero)
+Elegir…
+Frase de paso de la clave (Llavero)
+FTP
+Contraseña (Llavero)
+Cifrar con TLS (FTPS)
+Este protocolo no cifra la conexión: no lo uses por redes no fiables. Para ello prefiere SSH/SFTP (o FTPS).
+Mini Linux (Alpine en una máquina virtual)
+CPUs: automático
+Carpeta compartida con el Mac (vacío = ~/ShellDock-Linux)
+La carpeta se ve dentro de Linux en /mnt/mac. Los paquetes que instales con apk, tu configuración (/etc) y tus archivos de /root y /home se conservan entre arranques.
+Estado guardado: %@
+Restablecer Mini Linux…
+Se borrarán los paquetes instalados, la configuración y los archivos de /root y /home. La carpeta compartida del Mac no se toca.
+Borrar estado
+RDP
+Dominio
+Resolución (p. ej. 1920x1080)
+VNC
+Contraseña VNC (Llavero)
+Notas
+Puerto serie
+Dispositivo
+Baudios
+Bits de datos
+Paridad
+Ninguna
+Par
+Impar
+Bits de parada
+Control de flujo
+RTS/CTS
+XON/XOFF
+Conexión
+Salto (ProxyJump): usuario@bastion[:puerto]
+Keep-alive cada %@ s
+Compresión (-C)
+Reconectar automáticamente si se cae
+Reenvíos
+Reenvío X11
+X11 de confianza (-Y)
+XQuartz no está instalado: instálalo para usar aplicaciones gráficas (brew install --cask xquartz).
+Reenvío del agente SSH (-A)
+Después de conectar
+Comando inicial
+Argumentos extra de ssh
+Mostrar panel de archivos (SFTP)
+Túneles de esta sesión (se abren al conectar)
+Sin túneles
+Añadir túnel
+Escuchar en
+Destino
+Añadir
+Apariencia de esta sesión
+Tema
+Predeterminado
+Tamaño de fuente: predeterminado
+Tamaño de fuente: %@
+Fuente
+Tamaño: %@
+Tema de color
+Comportamiento
+Usar Option como tecla Meta (Alt)
+Barra de monitorización remota (CPU, memoria, disco) en pestañas SSH
+Copiar al seleccionar
+Resaltar palabras clave (error, warning, IPs…) en Telnet/TCP/serie
+Editar archivos remotos con el editor interno
+Confirmar al cerrar pestañas activas
+Historial de desplazamiento: %@ líneas
+Shell (vacío = la del sistema)
+Añadir la caja de herramientas Unix al PATH
+SSH
+Claves de host nuevas
+Aceptar las nuevas, avisar si cambian (recomendado)
+Preguntar siempre
+No comprobar (inseguro)
+Guardar un registro (log) de cada sesión SSH
+Abrir carpeta de registros
+Panel de archivos
+Ancho del panel SFTP: %@ px
+Seguridad
+usuario@servidor:~$ ls -la
+Contraseña maestra
+Activada: ShellDock se bloquea al abrirse.
+Nueva contraseña
+Repite la contraseña
+Cambiar
+Activar
+Las contraseñas no coinciden
+Guardada
+Desactivar
+Desactivada
+Bloquea el acceso a la ventana. Las contraseñas de las sesiones siguen protegidas por el Llavero de macOS.
+Buscar sesiones
+Sesiones (%@)
+Resultados
+Exportar sesiones…
+Importar sesiones (JSON)…
+Importar de MobaXterm (.mxtsessions)…
+Importar / exportar
+Importadas %@ sesiones
+Abrir todas las sesiones de la carpeta
+Nueva sesión aquí…
+Nueva subcarpeta
+Subcarpeta
+Eliminar carpeta
+Editar…
+Duplicar
+Mover a carpeta
+Copiar comando ssh
+Nuevo
+Contenido (varias líneas = varios comandos)
+Pulsar Intro al final
+Variables: ${host} ${user} ${session} ${date} ${time} ${clipboard}   ·   Pausa: línea «#wait 2»
+Enviar a todas las pestañas de MultiExec
+Ejecutar en la pestaña activa
+Elige o crea un snippet
+Mini Linux
+Nueva terminal local (⌘T). Mantén pulsado para elegir otra sesión
+Renombrar pestaña
+Reconectar
+Renombrar pestaña…
+Incluir en MultiExec
+Excluir de MultiExec
+Color de pestaña
+Duplicar pestaña
+Cerrar otras
+Cerrar todas
+Rojo
+Naranja
+Amarillo
+Verde
+Turquesa
+Azul
+Violeta
+Rosa
+Nuevo túnel
+Aún no hay túneles
+Un túnel redirige un puerto local a un servicio remoto (o al revés) a través de una sesión SSH.
+Sesión SSH
+Utilidades
+Contraseñas
+Hashes
+Base64 / URL / Hex
+Subred
+Fecha Unix
+Copiar
+Longitud: %@
+Símbolos
+Texto
+%@ codificado
+%@ decodificado
+(no válido)
+CIDR, p. ej. 192.168.1.0/24
+Red
+Máscara
+Wildcard
+Broadcast
+Primer host
+Último host
+Hosts útiles
+Escribe una red IPv4 con prefijo
+Segundos o milisegundos desde 1970
+Ahora: %@
+Servidor HTTP
+Publica una carpeta en tu red (solo lectura) para descargar archivos desde otras máquinas con curl o wget.
+Accesible desde la red local (sin contraseña: cualquiera en tu red podrá leer esa carpeta)
+Iniciar
+ShellDock está bloqueado
+Contraseña incorrecta
+Desbloquear
