@@ -30,6 +30,14 @@ h1{font-size:clamp(34px,6vw,56px);line-height:1.1;margin:18px 0 14px;letter-spac
 .tab{padding:3px 12px;border-radius:6px;background:#0b0f14;color:var(--muted)}.tab.on{color:var(--text);border:1px solid var(--line)}
 .mock pre{margin:0;padding:18px;font:13.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;color:#c9d1d9;overflow-x:auto}
 .g{color:var(--accent)}.b{color:var(--accent2)}.m{color:var(--muted)}
+.carousel{position:relative;margin:48px auto 0;max-width:900px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel);box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.slide{display:none;margin:0}.slide.on{display:block}.slide img{display:block;width:100%;height:auto}
+.slide figcaption{padding:10px 16px;color:var(--muted);font-size:14px;border-top:1px solid var(--line);text-align:center}
+.nav{position:absolute;top:42%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:rgba(13,17,23,.75);color:var(--text);font-size:24px;line-height:1;cursor:pointer}
+.nav:hover{background:var(--accent);color:#04200c}.prev{left:12px}.next{right:12px}
+.dots{display:flex;gap:8px;justify-content:center;padding:0 0 12px;background:var(--panel)}
+.dots button{width:9px;height:9px;border-radius:50%;border:0;padding:0;background:var(--line);cursor:pointer}.dots button.on{background:var(--accent)}
+.donate{text-align:center}.donate .btn{background:#ffc439;border-color:#ffc439;color:#111}
 section{padding:72px 0;border-top:1px solid var(--line)}
 h2{font-size:32px;margin:0 0 10px;letter-spacing:-.01em}.sub{color:var(--muted);margin:0 0 36px;max-width:620px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
@@ -51,7 +59,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
 <body>
 <nav><div class="wrap">
   <a class="brand" href="#"><img src="assets/icon.png" alt="">ShellDock</a>
-  <ul><li><a href="#features">Features</a></li><li><a href="#download">Download</a></li><li><a href="#faq">FAQ</a></li><li><a href="https://github.com/loiro85/ShellDock">GitHub</a></li></ul>
+  <ul><li><a href="#features">Features</a></li><li><a href="#download">Download</a></li><li><a href="#faq">FAQ</a></li><li><a href="#donate">Donate</a></li><li><a href="https://github.com/loiro85/ShellDock">GitHub</a></li></ul>
 </div></nav>
 
 <header class="hero"><div class="wrap">
@@ -60,15 +68,16 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
   <p class="lead">SSH, SFTP, tunnels, MultiExec, VNC, serial and a built-in Linux VM — in one native app. Unlimited sessions, free and open source.</p>
   <div class="cta"><a class="btn primary" href="#download">Download for macOS</a><a class="btn" href="https://github.com/loiro85/ShellDock">View on GitHub</a></div>
   <p class="small">Version 0.1.0 · macOS 13 or later · Apple Silicon &amp; Intel</p>
-  <div class="mock" aria-hidden="true">
-    <div class="bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span>
-      <div class="tabs"><span class="tab on">● web1</span><span class="tab">db1</span><span class="tab">Mini Linux</span><span class="tab">+</span></div></div>
-<pre><span class="g">deploy@web1</span>:<span class="b">~</span>$ uptime
- 14:02:11 up 41 days,  3:12,  2 users,  load average: 0.08, 0.11, 0.09
-<span class="g">deploy@web1</span>:<span class="b">~</span>$ sudo systemctl status nginx | head -3
-<span class="g">●</span> nginx.service - A high performance web server
-     Active: <span class="g">active (running)</span> since Mon 2026-09-23
-<span class="g">deploy@web1</span>:<span class="b">~</span>$ <span class="m"># MultiExec: this line goes to every open tab</span></pre>
+  <div class="carousel" id="carousel" aria-roledescription="carousel" aria-label="ShellDock screenshots">
+    <div class="slides">
+      <figure class="slide on"><img src="assets/shot-main.png" alt="ShellDock main window with session tree, ribbon and an SSH terminal"><figcaption>Session tree, ribbon and terminal tabs</figcaption></figure>
+      <figure class="slide"><img src="assets/shot-multi.png" alt="MultiExec showing three terminals with an Exclude checkbox on each" loading="lazy"><figcaption>MultiExec: type once, run everywhere — with Exclude per terminal</figcaption></figure>
+      <figure class="slide"><img src="assets/shot-multi-de.png" alt="ShellDock in German" loading="lazy"><figcaption>Deutsch</figcaption></figure>
+      <figure class="slide"><img src="assets/shot-multi-fr.png" alt="ShellDock in French" loading="lazy"><figcaption>Français</figcaption></figure>
+    </div>
+    <button class="nav prev" aria-label="Previous screenshot">&#8249;</button>
+    <button class="nav next" aria-label="Next screenshot">&#8250;</button>
+    <div class="dots"></div>
   </div>
 </div></header>
 
@@ -108,6 +117,12 @@ scripts/build_app.sh --release   # → dist/ShellDock.app
 swift test</pre>
 </div></section>
 
+<section id="donate" class="donate"><div class="wrap">
+  <h2>Buy me a coffee ☕</h2>
+  <p class="sub" style="margin-left:auto;margin-right:auto">ShellDock is free and open source. If it saves you time, a small donation helps keep it maintained and growing.</p>
+  <a class="btn" href="PAYPAL_URL_HERE" rel="noopener">Donate with PayPal</a>
+</div></section>
+
 <section id="faq"><div class="wrap">
   <h2>FAQ</h2>
   <div class="grid">
@@ -120,6 +135,13 @@ swift test</pre>
 
 <footer><div class="wrap">
   <span>© 2026 ShellDock · Open source</span>
-  <span><a href="https://github.com/loiro85/ShellDock">Source</a> · <a href="https://github.com/loiro85/ShellDock/issues">Report an issue</a> · <a href="https://github.com/loiro85/ShellDock/releases">Releases</a></span>
+  <span><a href="https://github.com/loiro85/ShellDock">Source</a> · <a href="https://github.com/loiro85/ShellDock/issues">Report an issue</a> · <a href="https://github.com/loiro85/ShellDock/releases">Releases</a> · <a href="#donate">Donate</a></span>
 </div></footer>
+<script>
+(function(){var c=document.getElementById('carousel'),sl=[].slice.call(c.querySelectorAll('.slide')),d=c.querySelector('.dots'),i=0,t;
+sl.forEach(function(_,k){var b=document.createElement('button');b.setAttribute('aria-label','Screenshot '+(k+1));b.onclick=function(){go(k,true)};d.appendChild(b)});
+function go(n,user){i=(n+sl.length)%sl.length;sl.forEach(function(x,k){x.classList.toggle('on',k==i)});[].forEach.call(d.children,function(x,k){x.classList.toggle('on',k==i)});if(user)clearInterval(t)}
+c.querySelector('.prev').onclick=function(){go(i-1,true)};c.querySelector('.next').onclick=function(){go(i+1,true)};
+go(0);if(!matchMedia('(prefers-reduced-motion: reduce)').matches)t=setInterval(function(){go(i+1)},5000)})();
+</script>
 </body></html>
