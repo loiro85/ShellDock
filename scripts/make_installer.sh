@@ -16,42 +16,21 @@ scripts/build_app.sh "$@"
 APP="dist/ShellDock.app"
 STAGE="$(mktemp -d)"; trap 'rm -rf "$STAGE"' EXIT
 
-# ---------- DMG: ventana con la app, el acceso directo a Aplicaciones y una flecha "arrastra aquí" ----------
-mkdir -p "$STAGE/dmg/.background"
-ditto --noextattr --noqtn "$APP" "$STAGE/dmg/ShellDock.app"
-ln -s /Applications "$STAGE/dmg/Applications"
-tiffutil -cathidpicheck scripts/dmg/background.png scripts/dmg/background@2x.png -out "$STAGE/dmg/.background/background.tiff" 2>/dev/null
-cp scripts/AppIcon.icns "$STAGE/dmg/.VolumeIcon.icns"
+# ---------- DMG: ventana con la app, el acceso directo a Aplicaciones, título y flecha (dmgbuild: sin Finder ni permisos) ----------
+for v in "/Volumes/ShellDock $VER"*; do [ -d "$v" ] && hdiutil detach "$v" -force >/dev/null 2>&1; done
 DMG="dist/ShellDock-$VER.dmg"; rm -f "$DMG"
-RW="$STAGE/rw.dmg"; VOL="ShellDock $VER"
-hdiutil create -volname "$VOL" -srcfolder "$STAGE/dmg" -fs HFS+ -format UDRW -ov "$RW" >/dev/null
-MNT=$(hdiutil attach "$RW" -noautoopen -readwrite | sed -n 's#.*\(/Volumes/.*\)#\1#p' | head -1)
-SetFile -a C "$MNT" 2>/dev/null || true
-# posiciones de los iconos y fondo (si Finder no responde, el .dmg sigue funcionando, solo sin la maqueta)
-osascript <<OSA >/dev/null || echo "AVISO: no se pudo maquetar la ventana del .dmg (permiso de Automatización de Finder)"
-tell application "Finder"
-  tell disk "$VOL"
-    open
-    set current view of container window to icon view
-    set toolbar visible of container window to false
-    set statusbar visible of container window to false
-    set the bounds of container window to {200, 120, 860, 520}
-    set vo to the icon view options of container window
-    set arrangement of vo to not arranged
-    set icon size of vo to 112
-    set text size of vo to 13
-    set background picture of vo to file ".background:background.tiff"
-    set position of item "ShellDock.app" of container window to {170, 200}
-    set position of item "Applications" of container window to {490, 200}
-    update without registering applications
-    delay 2
-    close
-  end tell
-end tell
-OSA
-sync; sleep 1
-hdiutil detach "$MNT" >/dev/null || { sleep 2; hdiutil detach -force "$MNT" >/dev/null; }
-hdiutil convert "$RW" -format UDZO -imagekey zlib-level=9 -ov -o "$DMG" >/dev/null
+DMGBUILD="${DMGBUILD:-}"
+[ -z "$DMGBUILD" ] && command -v dmgbuild >/dev/null && DMGBUILD=$(command -v dmgbuild)
+if [ -z "$DMGBUILD" ]; then
+  python3 -m venv "$STAGE/venv" && "$STAGE/venv/bin/pip" install -q dmgbuild && DMGBUILD="$STAGE/venv/bin/dmgbuild"
+fi
+ditto --noextattr --noqtn "$APP" "$STAGE/ShellDock.app"
+for try in 1 2 3; do      # a veces el volumen sigue ocupado (Spotlight/Finder) al reducir la imagen: se reintenta
+  DMG_APP="$STAGE/ShellDock.app" DMG_ROOT="$PWD" "$DMGBUILD" -s scripts/dmg/settings.py "ShellDock $VER" "$DMG" >/dev/null 2>&1 && break
+  for v in "/Volumes/ShellDock $VER"*; do [ -d "$v" ] && hdiutil detach "$v" -force >/dev/null 2>&1; done
+  rm -f "$DMG"; sleep 3
+done
+[ -f "$DMG" ] || { echo "ERROR: no se pudo crear el .dmg"; exit 1; }
 [ -n "${SIGN_IDENTITY:-}" ] && codesign --force --sign "$SIGN_IDENTITY" "$DMG"
 echo "DMG: $DMG"
 
