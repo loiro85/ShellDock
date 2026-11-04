@@ -33,6 +33,7 @@ struct SettingsView: View {
                     Toggle("Usar Option como tecla Meta (Alt)", isOn: $settings.data.optionAsMeta)
                     Toggle("Barra de monitorización remota (CPU, memoria, disco) en pestañas SSH", isOn: $settings.data.remoteMonitor)
                     Toggle("Copiar al seleccionar", isOn: $settings.data.copyOnSelect)
+                    Toggle("Pegar con el botón derecho del ratón", isOn: $settings.data.rightClickPaste)
                     Toggle("Resaltar palabras clave (error, warning, IPs…) en Telnet/TCP/serie", isOn: $settings.data.highlightKeywords)
                     Toggle("Editar archivos remotos con el editor interno", isOn: $settings.data.internalEditor)
                     Toggle("Confirmar al cerrar pestañas activas", isOn: $settings.data.confirmClose)

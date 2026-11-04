@@ -377,6 +377,13 @@ final class HTTPServerTests: XCTestCase {
 
 @MainActor
 final class StoreCompatTests: XCTestCase {
+    func testRightClickPasteDefaultsOnForOldSettings() throws {
+        let old = try JSONDecoder().decode(AppSettingsData.self, from: Data(#"{"fontSize":14}"#.utf8))
+        XCTAssertTrue(old.rightClickPaste)
+        let off = try JSONDecoder().decode(AppSettingsData.self, from: Data(#"{"rightClickPaste":false}"#.utf8))
+        XCTAssertFalse(off.rightClickPaste)
+    }
+
     func tmp() -> URL { FileManager.default.temporaryDirectory.appendingPathComponent("sd-store-\(UUID().uuidString).json") }
 
     func testOldFileMissingNewFieldsStillLoads() throws {

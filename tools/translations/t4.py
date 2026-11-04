@@ -89,4 +89,5 @@ T = {
 "· restaurando tu configuración y archivos…": ("· restoring your configuration and files…", "· restauration de votre configuration et de vos fichiers…", "· ripristino di configurazione e file…", "· Konfiguration und Dateien werden wiederhergestellt…", "· a restaurar a sua configuração e ficheiros…"),
 "· reinstalando tus paquetes…": ("· reinstalling your packages…", "· réinstallation de vos paquets…", "· reinstallazione dei pacchetti…", "· Pakete werden neu installiert…", "· a reinstalar os seus pacotes…"),
 "Mac en /mnt/mac · «apk add <paquete>» instala y se conserva": ("Mac at /mnt/mac · “apk add <package>” installs and persists", "Mac dans /mnt/mac · « apk add <paquet> » installe et conserve", "Mac in /mnt/mac · «apk add <pacchetto>» installa e conserva", "Mac unter /mnt/mac · „apk add <Paket>“ installiert und bleibt erhalten", "Mac em /mnt/mac · «apk add <pacote>» instala e conserva"),
+"Pegar con el botón derecho del ratón": ("Paste with right mouse button", "Coller avec le clic droit", "Incolla con il tasto destro del mouse", "Mit der rechten Maustaste einfügen", "Colar com o botão direito do rato"),
 }

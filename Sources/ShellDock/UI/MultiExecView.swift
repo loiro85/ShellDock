@@ -106,6 +106,10 @@ struct KeyCatcher: NSViewRepresentable {
         var onFocus: (Bool) -> Void = { _ in }
         override var acceptsFirstResponder: Bool { true }
         override func mouseDown(with event: NSEvent) { window?.makeFirstResponder(self) }
+        override func rightMouseDown(with event: NSEvent) {
+            window?.makeFirstResponder(self)
+            if let s = NSPasteboard.general.string(forType: .string) { onText(s) }
+        }
         override func becomeFirstResponder() -> Bool { onFocus(true); return true }
         override func resignFirstResponder() -> Bool { onFocus(false); return true }
         override func performKeyEquivalent(with e: NSEvent) -> Bool {

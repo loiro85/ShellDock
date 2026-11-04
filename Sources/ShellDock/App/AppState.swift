@@ -16,6 +16,7 @@ final class AppState: ObservableObject {
     @Published var recordingTabID: UUID?
     private var recorded: [UInt8] = []
     private var keyMonitor: Any?
+    private var mouseMonitor: Any?
     @Published var sidebarVisible = true
     @Published var showFileBrowser = true
     @Published var editing: Session?
@@ -211,6 +212,23 @@ final class AppState: ObservableObject {
             MainActor.assumeIsolated { self?.observe(e) }
             return e
         }
+        mouseMonitor = NSEvent.addLocalMonitorForEvents(matching: .rightMouseDown) { [weak self] e in
+            MainActor.assumeIsolated { (self?.rightClickPaste(e) ?? false) ? nil : e }
+        }
+    }
+
+    /// Clic derecho sobre una terminal: pega el portapapeles (y lo replica en MultiExec). Se puede desactivar en Ajustes.
+    private func rightClickPaste(_ e: NSEvent) -> Bool {
+        guard settings.data.rightClickPaste, let frame = e.window?.contentView?.superview,
+              var v = frame.hitTest(frame.convert(e.locationInWindow, from: nil)) else { return false }
+        while !(v is TerminalView), let s = v.superview { v = s }
+        guard let tv = v as? TerminalView, let tab = tabs.first(where: { $0.terminalView === tv }),
+              let text = NSPasteboard.general.string(forType: .string), !text.isEmpty else { return false }
+        e.window?.makeFirstResponder(tv)
+        tv.paste(tv)
+        tab.onUserInput?(Array(text.utf8)[...])
+        if multiExec, !tab.excluded { for t in multiTargets where t !== tab { t.sendText(text) } }
+        return true
     }
 
     private func observe(_ e: NSEvent) {

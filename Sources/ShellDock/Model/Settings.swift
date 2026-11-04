@@ -7,6 +7,7 @@ struct AppSettingsData: Codable {
     var themeName = "ShellDock Oscuro"
     var scrollback = 20000
     var copyOnSelect = false
+    var rightClickPaste = true      // clic derecho pega el portapapeles (como MobaXterm)
     var optionAsMeta = true
     var cursorStyle = "block"
     var confirmClose = true
@@ -30,7 +31,7 @@ struct AppSettingsData: Codable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         func get<T: Decodable>(_ k: CodingKeys, _ v: inout T) { if let x = try? c.decodeIfPresent(T.self, forKey: k) { v = x } }
         get(.fontName, &fontName); get(.fontSize, &fontSize); get(.themeName, &themeName); get(.scrollback, &scrollback)
-        get(.copyOnSelect, &copyOnSelect); get(.optionAsMeta, &optionAsMeta); get(.cursorStyle, &cursorStyle)
+        get(.copyOnSelect, &copyOnSelect); get(.rightClickPaste, &rightClickPaste); get(.optionAsMeta, &optionAsMeta); get(.cursorStyle, &cursorStyle)
         get(.confirmClose, &confirmClose); get(.hostKeyPolicy, &hostKeyPolicy); get(.defaultShell, &defaultShell)
         get(.logSessions, &logSessions); get(.terminalBell, &terminalBell); get(.keepToolboxInPath, &keepToolboxInPath)
         get(.sftpPanelWidth, &sftpPanelWidth); get(.sidebarVisible, &sidebarVisible)

@@ -38,6 +38,12 @@ enum DemoData {
                             NSApp.postEvent(e, atStart: false)
                         }
                     }
+                } else if ProcessInfo.processInfo.environment["SHELLDOCK_DEMO_MULTI"] == "rightclick", let t = s.tabs.first as? ProcessTab, let win = t.tv.window {
+                    // clic derecho real sobre la primera terminal: debe pegar el portapapeles en ella y en las no excluidas
+                    NSPasteboard.general.clearContents(); NSPasteboard.general.setString("echo pegado-$$\r", forType: .string)
+                    let p = t.tv.convert(NSPoint(x: 50, y: 50), to: nil)
+                    if let e = NSEvent.mouseEvent(with: .rightMouseDown, location: p, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                                                  windowNumber: win.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1) { NSApp.postEvent(e, atStart: false) }
                 } else if ProcessInfo.processInfo.environment["SHELLDOCK_DEMO_MULTI"] == "typing", let t = s.tabs.first as? ProcessTab {
                     // equivale a teclear en la primera terminal
                     t.tv.send(source: t.tv, data: Array("echo tecleado-$$\r".utf8)[...])
