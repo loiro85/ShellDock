@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShellDock — Terminal & remote tools for macOS</title>
+<meta name="description" content="ShellDock is a native macOS terminal with SSH, SFTP, tunnels, MultiExec, VNC and more. No session limits.">
+<link rel="icon" href="assets/icon.png">
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--line:#262d38;--text:#e6edf3;--muted:#8b97a7;--accent:#3fb950;--accent2:#58a6ff}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+a{color:var(--accent2);text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+nav{position:sticky;top:0;background:rgba(13,17,23,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);z-index:5}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:60px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--text)}.brand img{width:30px;height:30px}
+nav ul{display:flex;gap:22px;list-style:none;margin:0;padding:0}nav ul a{color:var(--muted);font-size:15px}
+.btn{display:inline-block;padding:11px 22px;border-radius:8px;font-weight:600;border:1px solid var(--line);color:var(--text)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#04200c}.btn:hover{text-decoration:none;filter:brightness(1.1)}
+.hero{padding:72px 0 40px;text-align:center}
+.hero img.logo{width:96px;height:96px}
+h1{font-size:clamp(34px,6vw,56px);line-height:1.1;margin:18px 0 14px;letter-spacing:-.02em}
+.hero p.lead{color:var(--muted);font-size:19px;max-width:640px;margin:0 auto 28px}
+.hero .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.small{color:var(--muted);font-size:13px;margin-top:14px}
+.mock{margin:48px auto 0;max-width:860px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#0b0f14;text-align:left;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.mock .bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+.dot{width:12px;height:12px;border-radius:50%}.tabs{display:flex;gap:6px;margin-left:14px;font-size:13px}
+.tab{padding:3px 12px;border-radius:6px;background:#0b0f14;color:var(--muted)}.tab.on{color:var(--text);border:1px solid var(--line)}
+.mock pre{margin:0;padding:18px;font:13.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;color:#c9d1d9;overflow-x:auto}
+.g{color:var(--accent)}.b{color:var(--accent2)}.m{color:var(--muted)}
+section{padding:72px 0;border-top:1px solid var(--line)}
+h2{font-size:32px;margin:0 0 10px;letter-spacing:-.01em}.sub{color:var(--muted);margin:0 0 36px;max-width:620px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px}
+.card h3{margin:0 0 6px;font-size:18px}.card p{margin:0;color:var(--muted);font-size:15px}
+.dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.dl .card .btn{margin-top:14px}
+code,kbd{font:13.5px ui-monospace,Menlo,monospace;background:#0b0f14;border:1px solid var(--line);border-radius:5px;padding:2px 6px}
+pre.cmd{background:#0b0f14;border:1px solid var(--line);border-radius:8px;padding:14px;overflow-x:auto;font:13.5px/1.5 ui-monospace,Menlo,monospace}
+.note{border-left:3px solid #d29922;background:#1c1707;padding:14px 18px;border-radius:0 8px 8px 0;color:#e3c777;font-size:15px;margin-top:24px}
+ul.langs{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:0}
+ul.langs li{padding:5px 14px;border:1px solid var(--line);border-radius:99px;background:var(--panel);font-size:14px}
+table{width:100%;border-collapse:collapse;font-size:15px}td,th{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--muted);font-weight:600}
+footer{border-top:1px solid var(--line);padding:32px 0;color:var(--muted);font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+@media(max-width:640px){nav ul{display:none}}
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+  <a class="brand" href="#"><img src="assets/icon.png" alt="">ShellDock</a>
+  <ul><li><a href="#features">Features</a></li><li><a href="#download">Download</a></li><li><a href="#faq">FAQ</a></li><li><a href="https://github.com/loiro85/ShellDock">GitHub</a></li></ul>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <img class="logo" src="assets/icon.png" alt="ShellDock icon">
+  <h1>Your terminal toolbox<br>for macOS</h1>
+  <p class="lead">SSH, SFTP, tunnels, MultiExec, VNC, serial and a built-in Linux VM — in one native app. Unlimited sessions, free and open source.</p>
+  <div class="cta"><a class="btn primary" href="#download">Download for macOS</a><a class="btn" href="https://github.com/loiro85/ShellDock">View on GitHub</a></div>
+  <p class="small">Version 0.1.0 · macOS 13 or later · Apple Silicon &amp; Intel</p>
+  <div class="mock" aria-hidden="true">
+    <div class="bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span>
+      <div class="tabs"><span class="tab on">● web1</span><span class="tab">db1</span><span class="tab">Mini Linux</span><span class="tab">+</span></div></div>
+<pre><span class="g">deploy@web1</span>:<span class="b">~</span>$ uptime
+ 14:02:11 up 41 days,  3:12,  2 users,  load average: 0.08, 0.11, 0.09
+<span class="g">deploy@web1</span>:<span class="b">~</span>$ sudo systemctl status nginx | head -3
+<span class="g">●</span> nginx.service - A high performance web server
+     Active: <span class="g">active (running)</span> since Mon 2026-09-23
+<span class="g">deploy@web1</span>:<span class="b">~</span>$ <span class="m"># MultiExec: this line goes to every open tab</span></pre>
+  </div>
+</div></header>
+
+<section id="features"><div class="wrap">
+  <h2>Everything in one window</h2>
+  <p class="sub">Tabs, a session tree and a ribbon of tools, with the workflow of a classic remote toolbox and a native macOS look.</p>
+  <div class="grid">
+    <div class="card"><h3>Many protocols</h3><p>Local terminal, SSH, SFTP, FTP/FTPS, Telnet, Rlogin, raw TCP, serial, Mosh, VNC, RDP launcher and a web browser tab.</p></div>
+    <div class="card"><h3>SFTP side panel</h3><p>Browse and transfer files next to your SSH terminal with drag and drop, permissions and an integrated text editor.</p></div>
+    <div class="card"><h3>MultiExec</h3><p>See all open terminals at once and type in all of them, with an Exclude checkbox on each.</p></div>
+    <div class="card"><h3>SSH tunnels</h3><p>Local, remote and dynamic (SOCKS) forwarding, saved per session or managed globally.</p></div>
+    <div class="card"><h3>Mini Linux</h3><p>An Alpine Linux virtual machine inside the app with a shared Mac folder and persistent packages and settings.</p></div>
+    <div class="card"><h3>Macros &amp; snippets</h3><p>Record and replay keystrokes, or save snippets with variables and pauses.</p></div>
+    <div class="card"><h3>Network tools</h3><p>Port and network scanner, ping, traceroute, DNS, whois, Wake-on-LAN, SSH key manager, hashes, subnet calculator, HTTP file server.</p></div>
+    <div class="card"><h3>Security first</h3><p>Passwords in the macOS Keychain, input validation, hardened runtime, optional master password, host key checking. See the <a href="https://github.com/loiro85/ShellDock/blob/main/docs/SECURITY.md">security notes</a>.</p></div>
+    <div class="card"><h3>No limits</h3><p>No cap on sessions, tabs or tunnels. Imports <code>.mxtsessions</code> files from MobaXterm.</p></div>
+  </div>
+  <h2 style="margin-top:56px;font-size:24px">Languages</h2>
+  <ul class="langs"><li>English</li><li>Español</li><li>Français</li><li>Italiano</li><li>Deutsch</li><li>Português</li></ul>
+</div></section>
+
+<section id="download"><div class="wrap">
+  <h2>Download</h2>
+  <p class="sub">Free for macOS 13 Ventura or later. One universal build for Apple Silicon and Intel.</p>
+  <div class="dl">
+    <div class="card"><h3>Disk image (.dmg)</h3><p>Open it and drag ShellDock to Applications.</p>
+      <a class="btn primary" href="https://github.com/loiro85/ShellDock/releases/latest/download/ShellDock-0.1.0.dmg">Download .dmg</a></div>
+    <div class="card"><h3>Installer (.pkg)</h3><p>Standard installer package, installs into Applications.</p>
+      <a class="btn" href="https://github.com/loiro85/ShellDock/releases/latest/download/ShellDock-0.1.0.pkg">Download .pkg</a></div>
+  </div>
+  <div class="note"><strong>First launch:</strong> this build is not yet notarized by Apple, so macOS may say it can't verify the app. Right-click ShellDock → <em>Open</em> → <em>Open</em>, or run:
+    <pre class="cmd" style="color:var(--text);margin-bottom:0">xattr -dr com.apple.quarantine /Applications/ShellDock.app</pre></div>
+  <h3 style="margin-top:40px">Build from source</h3>
+<pre class="cmd">git clone https://github.com/loiro85/ShellDock.git
+cd ShellDock
+scripts/build_app.sh --release   # → dist/ShellDock.app
+swift test</pre>
+</div></section>
+
+<section id="faq"><div class="wrap">
+  <h2>FAQ</h2>
+  <div class="grid">
+    <div class="card"><h3>Is it free?</h3><p>Yes. ShellDock is open source and has no session limits or paid tiers.</p></div>
+    <div class="card"><h3>Is it MobaXterm for Mac?</h3><p>No. It is an independent, original app inspired by that kind of workflow, with no code or assets from other products. Not affiliated with Mobatek.</p></div>
+    <div class="card"><h3>What isn't there yet?</h3><p>No built-in X server (use XQuartz), no embedded RDP, no XDMCP, and keyword highlighting only on Telnet/TCP/serial. The <a href="https://github.com/loiro85/ShellDock/blob/main/docs/MOBAXTERM_PARITY.md">parity document</a> lists the real status.</p></div>
+    <div class="card"><h3>Does Mini Linux need internet?</h3><p>Only the first time: it downloads Alpine Linux (~90 MB, checksum verified) and keeps it cached.</p></div>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <span>© 2026 ShellDock · Open source</span>
+  <span><a href="https://github.com/loiro85/ShellDock">Source</a> · <a href="https://github.com/loiro85/ShellDock/issues">Report an issue</a> · <a href="https://github.com/loiro85/ShellDock/releases">Releases</a></span>
+</div></footer>
+</body></html>

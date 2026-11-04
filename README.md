@@ -1,30 +1,44 @@
+<p align="center"><img src="docs/assets/icon.png" width="96" alt="ShellDock"></p>
+
 # ShellDock
 
-Cliente de terminal y herramientas remotas para macOS, inspirado en el flujo de trabajo de MobaXterm (aplicación original, sin código ni recursos de terceros).
+A native macOS terminal and remote-tools app (SwiftUI + AppKit, [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm)). SSH, SFTP, tunnels, MultiExec, VNC, serial and a built-in Linux VM, with **no session limits**. Original code, inspired by the classic "remote toolbox" workflow; not affiliated with any other product.
 
-Incluye:
-- **Sesiones:** terminal local, SSH (con panel SFTP que reutiliza la conexión y salto por bastión), SFTP/FTP/FTPS, Telnet, Rlogin, TCP crudo, puerto serie, Mosh (si está instalado), VNC nativo, RDP (lanzador), Navegador web y **Mini Linux** (Alpine en una VM, carpeta compartida en `/mnt/mac`). Sin límite de sesiones; importador de `.mxtsessions`.
-- **Interfaz tipo MobaXterm:** cinta con iconos y texto, árbol de sesiones, pestañas con «+», panel de archivos con arrastrar y soltar, editor de texto integrado, barra de monitorización remota (CPU, memoria, disco, uptime).
-- **MultiExec:** muestra todas las terminales en cuadrícula; lo que se teclea va a todas, con casilla *Exclude* en cada una. **Dividir** muestra las terminales a la vez sin MultiExec.
-- **Productividad:** macros (grabar y reproducir), snippets con variables y pausas, túneles SSH, resaltado de palabras clave (Telnet/TCP/serie), contraseña maestra opcional.
-- **Herramientas:** escáner de puertos, ping/traceroute/DNS/whois, Wake-on-LAN, claves SSH, generador de contraseñas, hashes, Base64/URL/Hex, calculadora de subredes, fecha Unix, servidor HTTP de archivos.
+Website: https://loiro85.github.io/ShellDock/
 
-## Instalar
-    scripts/make_installer.sh --universal   # genera dist/ShellDock-<versión>.dmg y .pkg
-Abre el `.dmg` y arrastra ShellDock a Aplicaciones, o ejecuta el `.pkg`. Sin Developer ID, en otros Macs: clic derecho → Abrir la primera vez.
+## Download
+Get the latest `.dmg` or `.pkg` from the [Releases](https://github.com/loiro85/ShellDock/releases) page (universal: Apple Silicon + Intel, macOS 13+).
 
-## Compilar
-    scripts/build_app.sh      # genera dist/ShellDock.app (firma ad-hoc con entitlement de virtualización)
-    swift test                # 73 pruebas
+The build is ad-hoc signed and not notarized yet, so on first launch use right-click → **Open**, or:
 
-## Limitaciones conocidas
-- El resaltado de palabras clave aún no se aplica a SSH ni a la terminal local (SwiftTerm no permite interceptar su salida).
-- Sin servidor X11 propio (usa XQuartz), sin XDMCP, sin gestor de paquetes MobApt (en Mini Linux se usa `apk`).
-- RDP se abre con «Windows App» / Microsoft Remote Desktop (no incrustado; requeriría FreeRDP).
-- X11 requiere XQuartz.
-- Mini Linux necesita el entitlement `com.apple.security.virtualization`; para distribuir hace falta firmar con Developer ID.
-- Comprobar el nombre «ShellDock» (marca) antes de publicar.
+    xattr -dr com.apple.quarantine /Applications/ShellDock.app
 
-Idiomas: English (predeterminado), Español, Français, Italiano, Deutsch y Português; se cambia en Ajustes → Apariencia → Idioma y se aplica al momento (los menús del sistema, al reiniciar). Para añadir uno, crea `tools/translations/` con la nueva columna y ejecuta `tools/i18n_build.py`.
+## Features
+- **Sessions:** local terminal, SSH (with SFTP side panel reusing the connection, jump hosts), SFTP/FTP/FTPS, Telnet, Rlogin, raw TCP, serial, Mosh (if installed), native VNC, RDP launcher, web browser tab and **Mini Linux** (Alpine VM, shared folder at `/mnt/mac`, persistent packages). MobaXterm `.mxtsessions` importer.
+- **Interface:** ribbon with icon + label, session tree, tabs with "+", drag-and-drop file panel, built-in text editor, remote monitor bar (CPU, memory, disk, uptime).
+- **MultiExec:** all terminals in a grid; typing goes to all of them, with an *Exclude* checkbox on each. **Split** shows terminals side by side.
+- **Productivity:** macros, snippets with variables, SSH tunnels, keyword highlighting (Telnet/TCP/serial), optional master password.
+- **Tools:** port and network scanner, ping/traceroute/DNS/whois, Wake-on-LAN, SSH key manager, password generator, hashes, Base64/URL/Hex, subnet calculator, Unix time, HTTP file server.
+- **Languages:** English (default), Español, Français, Italiano, Deutsch, Português (Settings → Appearance → Language).
 
-Documentos: `docs/PLAN.md`, `docs/MOBAXTERM_PARITY.md` (estado real frente a MobaXterm), `docs/SECURITY.md`.
+## Build
+    scripts/build_app.sh --release     # dist/ShellDock.app
+    scripts/make_installer.sh --universal   # dist/ShellDock-<version>.dmg and .pkg
+    swift test                         # 73 tests
+
+Set `SIGN_IDENTITY`, `INSTALLER_IDENTITY` and `NOTARY_PROFILE` to sign and notarize with a Developer ID.
+
+## Adding a language
+Add a column in `tools/translations/*.py`, then run `python3 tools/i18n_build.py`. Translations were written by the author and would benefit from native-speaker review.
+
+## Known limitations
+- Keyword highlighting does not apply to SSH or local terminals.
+- No built-in X server (use XQuartz), no XDMCP; RDP opens in "Windows App" instead of embedding.
+- Mini Linux needs the `com.apple.security.virtualization` entitlement (works with ad-hoc signing).
+- Intel slice and real VNC/RDP/serial hardware are untested.
+
+## Docs
+[`docs/PLAN.md`](docs/PLAN.md) · [`docs/MOBAXTERM_PARITY.md`](docs/MOBAXTERM_PARITY.md) · [`docs/SECURITY.md`](docs/SECURITY.md)
+
+## License
+MIT — see [LICENSE](LICENSE).
