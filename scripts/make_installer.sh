@@ -16,13 +16,42 @@ scripts/build_app.sh "$@"
 APP="dist/ShellDock.app"
 STAGE="$(mktemp -d)"; trap 'rm -rf "$STAGE"' EXIT
 
-# ---------- DMG: ventana con la app y el acceso directo a Aplicaciones ----------
-mkdir -p "$STAGE/dmg"
+# ---------- DMG: ventana con la app, el acceso directo a Aplicaciones y una flecha "arrastra aquí" ----------
+mkdir -p "$STAGE/dmg/.background"
 ditto --noextattr --noqtn "$APP" "$STAGE/dmg/ShellDock.app"
 ln -s /Applications "$STAGE/dmg/Applications"
-cp scripts/AppIcon.icns "$STAGE/dmg/.VolumeIcon.icns"; SetFile -a C "$STAGE/dmg" 2>/dev/null || true
+tiffutil -cathidpicheck scripts/dmg/background.png scripts/dmg/background@2x.png -out "$STAGE/dmg/.background/background.tiff" 2>/dev/null
+cp scripts/AppIcon.icns "$STAGE/dmg/.VolumeIcon.icns"
 DMG="dist/ShellDock-$VER.dmg"; rm -f "$DMG"
-hdiutil create -volname "ShellDock $VER" -srcfolder "$STAGE/dmg" -fs HFS+ -format UDZO -imagekey zlib-level=9 -ov "$DMG" >/dev/null
+RW="$STAGE/rw.dmg"; VOL="ShellDock $VER"
+hdiutil create -volname "$VOL" -srcfolder "$STAGE/dmg" -fs HFS+ -format UDRW -ov "$RW" >/dev/null
+MNT=$(hdiutil attach "$RW" -noautoopen -readwrite | sed -n 's#.*\(/Volumes/.*\)#\1#p' | head -1)
+SetFile -a C "$MNT" 2>/dev/null || true
+# posiciones de los iconos y fondo (si Finder no responde, el .dmg sigue funcionando, solo sin la maqueta)
+osascript <<OSA >/dev/null || echo "AVISO: no se pudo maquetar la ventana del .dmg (permiso de Automatización de Finder)"
+tell application "Finder"
+  tell disk "$VOL"
+    open
+    set current view of container window to icon view
+    set toolbar visible of container window to false
+    set statusbar visible of container window to false
+    set the bounds of container window to {200, 120, 860, 520}
+    set vo to the icon view options of container window
+    set arrangement of vo to not arranged
+    set icon size of vo to 112
+    set text size of vo to 13
+    set background picture of vo to file ".background:background.tiff"
+    set position of item "ShellDock.app" of container window to {170, 200}
+    set position of item "Applications" of container window to {490, 200}
+    update without registering applications
+    delay 2
+    close
+  end tell
+end tell
+OSA
+sync; sleep 1
+hdiutil detach "$MNT" >/dev/null || { sleep 2; hdiutil detach -force "$MNT" >/dev/null; }
+hdiutil convert "$RW" -format UDZO -imagekey zlib-level=9 -ov -o "$DMG" >/dev/null
 [ -n "${SIGN_IDENTITY:-}" ] && codesign --force --sign "$SIGN_IDENTITY" "$DMG"
 echo "DMG: $DMG"
 

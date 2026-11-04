@@ -21,6 +21,15 @@ enum DemoData {
         add("Remote desktop", .rdp, "10.0.0.20", "administrator", lab.id)
         add("VNC viewer", .vnc, "10.0.0.30", "", lab.id)
         s.openLocal()
+        if ProcessInfo.processInfo.environment["SHELLDOCK_DEMO_RC"] != nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                guard let t = s.tabs.first as? ProcessTab, let win = t.tv.window else { return }
+                NSPasteboard.general.clearContents(); NSPasteboard.general.setString("echo pegado-$$", forType: .string)
+                let p = t.tv.convert(NSPoint(x: 50, y: 50), to: nil)
+                if let e = NSEvent.mouseEvent(with: .rightMouseDown, location: p, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                                              windowNumber: win.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1) { NSApp.postEvent(e, atStart: false) }
+            }
+        }
         if ProcessInfo.processInfo.environment["SHELLDOCK_DEMO_MULTI"] != nil {
             s.openLocal(); s.openLocal()
             s.multiExec = true

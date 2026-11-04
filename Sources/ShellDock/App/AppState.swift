@@ -212,13 +212,14 @@ final class AppState: ObservableObject {
             MainActor.assumeIsolated { self?.observe(e) }
             return e
         }
-        mouseMonitor = NSEvent.addLocalMonitorForEvents(matching: .rightMouseDown) { [weak self] e in
+        mouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.rightMouseDown, .leftMouseDown]) { [weak self] e in
             MainActor.assumeIsolated { (self?.rightClickPaste(e) ?? false) ? nil : e }
         }
     }
 
     /// Clic derecho sobre una terminal: pega el portapapeles (y lo replica en MultiExec). Se puede desactivar en Ajustes.
     private func rightClickPaste(_ e: NSEvent) -> Bool {
+        if e.type == .leftMouseDown, !e.modifierFlags.contains(.control) { return false }     // Ctrl+clic = clic derecho en macOS
         guard settings.data.rightClickPaste, let frame = e.window?.contentView?.superview,
               var v = frame.hitTest(frame.convert(e.locationInWindow, from: nil)) else { return false }
         while !(v is TerminalView), let s = v.superview { v = s }

@@ -16,6 +16,8 @@ struct SidebarView: View {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
                 TextField("Buscar sesiones", text: $query).textFieldStyle(.plain)
                 if !query.isEmpty { Button { query = "" } label: { Image(systemName: "xmark.circle.fill") }.buttonStyle(.plain).foregroundStyle(.secondary) }
+                Button { state.sidebarVisible = false } label: { Image(systemName: "sidebar.left") }
+                    .buttonStyle(.plain).foregroundStyle(.secondary).help(tr("Ocultar sesiones"))
             }
             .padding(8)
             .background(RoundedRectangle(cornerRadius: 7).fill(Color.primary.opacity(0.07)))

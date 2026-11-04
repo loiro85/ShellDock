@@ -17,6 +17,7 @@ struct AppSettingsData: Codable {
     var terminalBell = true
     var keepToolboxInPath = true
     var sftpPanelWidth = 320
+    var sidebarWidth = 290
     var sidebarVisible = true
     var highlightKeywords = true
     var internalEditor = true
@@ -34,7 +35,7 @@ struct AppSettingsData: Codable {
         get(.copyOnSelect, &copyOnSelect); get(.rightClickPaste, &rightClickPaste); get(.optionAsMeta, &optionAsMeta); get(.cursorStyle, &cursorStyle)
         get(.confirmClose, &confirmClose); get(.hostKeyPolicy, &hostKeyPolicy); get(.defaultShell, &defaultShell)
         get(.logSessions, &logSessions); get(.terminalBell, &terminalBell); get(.keepToolboxInPath, &keepToolboxInPath)
-        get(.sftpPanelWidth, &sftpPanelWidth); get(.sidebarVisible, &sidebarVisible)
+        get(.sftpPanelWidth, &sftpPanelWidth); get(.sidebarWidth, &sidebarWidth); get(.sidebarVisible, &sidebarVisible)
         get(.highlightKeywords, &highlightKeywords); get(.internalEditor, &internalEditor); get(.remoteMonitor, &remoteMonitor); get(.language, &language)
     }
 }

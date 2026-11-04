@@ -66,8 +66,8 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
   <img class="logo" src="assets/icon.png" alt="ShellDock icon">
   <h1>Your terminal toolbox<br>for macOS</h1>
   <p class="lead">SSH, SFTP, tunnels, MultiExec, VNC, serial and a built-in Linux VM — in one native app. Unlimited sessions, free and open source.</p>
-  <div class="cta"><a class="btn primary" href="#download">Download for macOS</a><a class="btn" href="https://github.com/loiro85/ShellDock">View on GitHub</a></div>
-  <p class="small">Version 0.1.0 · macOS 13 or later · Apple Silicon &amp; Intel</p>
+  <div class="cta"><a class="btn primary" id="hero-dl" href="#download">Download for macOS</a><a class="btn" href="https://github.com/loiro85/ShellDock">View on GitHub</a></div>
+  <p class="small">Version <span data-ver>0.1.1</span> · macOS 13 or later · Apple Silicon &amp; Intel</p>
   <div class="carousel" id="carousel" aria-roledescription="carousel" aria-label="ShellDock screenshots">
     <div class="slides">
       <figure class="slide on"><img src="assets/shot-main.png" alt="ShellDock main window with session tree, ribbon and an SSH terminal"><figcaption>Session tree, ribbon and terminal tabs</figcaption></figure>
@@ -103,10 +103,12 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
   <h2>Download</h2>
   <p class="sub">Free for macOS 13 Ventura or later. One universal build for Apple Silicon and Intel.</p>
   <div class="dl">
-    <div class="card"><h3>Disk image (.dmg)</h3><p>Open it and drag ShellDock to Applications.</p>
-      <a class="btn primary" href="https://github.com/loiro85/ShellDock/releases/latest/download/ShellDock-0.1.0.dmg">Download .dmg</a></div>
-    <div class="card"><h3>Installer (.pkg)</h3><p>Standard installer package, installs into Applications.</p>
-      <a class="btn" href="https://github.com/loiro85/ShellDock/releases/latest/download/ShellDock-0.1.0.pkg">Download .pkg</a></div>
+    <div class="card"><h3>Disk image (.dmg)</h3><p>Open it and drag ShellDock to Applications. <strong>Version <span data-ver>0.1.1</span></strong></p>
+      <a class="btn primary" id="dl-dmg" href="https://github.com/loiro85/ShellDock/releases/latest/download/ShellDock-0.1.1.dmg">Download .dmg (latest)</a></div>
+    <div class="card"><h3>Installer (.pkg)</h3><p>Standard installer package, installs into Applications. <strong>Version <span data-ver>0.1.1</span></strong></p>
+      <a class="btn" id="dl-pkg" href="https://github.com/loiro85/ShellDock/releases/latest/download/ShellDock-0.1.1.pkg">Download .pkg (latest)</a></div>
+    <div class="card"><h3>Older versions</h3><p>Need a previous release? Every version stays available, with its release notes.</p>
+      <a class="btn" href="https://github.com/loiro85/ShellDock/releases">Download older versions</a></div>
   </div>
   <div class="note"><strong>First launch:</strong> this build is not yet notarized by Apple, so macOS may say it can't verify the app. Right-click ShellDock → <em>Open</em> → <em>Open</em>, or run:
     <pre class="cmd" style="color:var(--text);margin-bottom:0">xattr -dr com.apple.quarantine /Applications/ShellDock.app</pre></div>
@@ -143,5 +145,14 @@ sl.forEach(function(_,k){var b=document.createElement('button');b.setAttribute('
 function go(n,user){i=(n+sl.length)%sl.length;sl.forEach(function(x,k){x.classList.toggle('on',k==i)});[].forEach.call(d.children,function(x,k){x.classList.toggle('on',k==i)});if(user)clearInterval(t)}
 c.querySelector('.prev').onclick=function(){go(i-1,true)};c.querySelector('.next').onclick=function(){go(i+1,true)};
 go(0);if(!matchMedia('(prefers-reduced-motion: reduce)').matches)t=setInterval(function(){go(i+1)},5000)})();
+</script>
+<script>
+// Muestra siempre la última versión publicada (si la API no responde, quedan los enlaces estáticos).
+(function(){fetch('https://api.github.com/repos/loiro85/ShellDock/releases/latest').then(function(r){return r.ok?r.json():null}).then(function(r){
+ if(!r)return;var v=(r.tag_name||'').replace(/^v/,'');
+ r.assets.forEach(function(a){var e=document.getElementById(/\.dmg$/.test(a.name)?'dl-dmg':/\.pkg$/.test(a.name)?'dl-pkg':'');if(e)e.href=a.browser_download_url;if(/\.dmg$/.test(a.name)){var h=document.getElementById('hero-dl');if(h)h.href=a.browser_download_url}});
+ [].forEach.call(document.querySelectorAll('[data-ver]'),function(e){e.textContent=v});
+ var h=document.getElementById('hero-dl');if(h)h.textContent='Download v'+v+' for macOS';
+}).catch(function(){})})();
 </script>
 </body></html>

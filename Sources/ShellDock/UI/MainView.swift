@@ -11,8 +11,8 @@ struct MainView: View {
         HStack(spacing: 0) {
             if state.sidebarVisible {
                 SidebarView()
-                    .frame(width: 290)
-                Divider()
+                    .frame(width: CGFloat(min(max(state.settings.data.sidebarWidth, SidebarResizer.minWidth), SidebarResizer.maxWidth)))
+                SidebarResizer()
             }
             VStack(spacing: 0) {
                 Ribbon(quick: $quick, quickFocused: $quickFocused)
@@ -40,6 +40,30 @@ struct MainView: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: state.toast)
+    }
+}
+
+/// Borde arrastrable de la barra lateral: cambia el ancho (se guarda en Ajustes); doble clic restablece; arrastrar hasta el límite la oculta.
+struct SidebarResizer: View {
+    static let minWidth: Int = 180, maxWidth: Int = 640, defaultWidth: Int = 290
+    @EnvironmentObject var state: AppState
+    @State private var startWidth: Int?
+
+    var body: some View {
+        Color.clear.frame(width: 7).contentShape(Rectangle())
+            .overlay { Rectangle().fill(Color(nsColor: .separatorColor)).frame(width: 1) }
+            .onHover { inside in if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() } }
+            .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                .onChanged { g in
+                    let start = startWidth ?? state.settings.data.sidebarWidth
+                    startWidth = start
+                    state.settings.data.sidebarWidth = min(max(start + Int(g.translation.width), Self.minWidth), Self.maxWidth)
+                }
+                .onEnded { g in
+                    if let start = startWidth, start + Int(g.translation.width) < Self.minWidth - 60 { state.sidebarVisible = false }
+                    startWidth = nil
+                })
+            .onTapGesture(count: 2) { state.settings.data.sidebarWidth = Self.defaultWidth }
     }
 }
 
