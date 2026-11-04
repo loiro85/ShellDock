@@ -125,7 +125,7 @@ struct SessionEditor: View {
                     Stepper(session.vmMemoryMB == 0 ? "Memoria: 1024 MB (predeterminado)" : "Memoria: \(session.vmMemoryMB) MB", value: $session.vmMemoryMB, in: 0...16384, step: 256)
                     Stepper(session.vmCPUs == 0 ? "CPUs: automático" : "CPUs: \(session.vmCPUs)", value: $session.vmCPUs, in: 0...8)
                     TextField("Carpeta compartida con el Mac (vacío = ~/ShellDock-Linux)", text: $session.sharedFolder)
-                    Text("La carpeta se ve dentro de Linux en /mnt/mac. Los paquetes que instales con apk, tu configuración (/etc) y tus archivos de /root y /home se conservan entre arranques.").font(.caption).foregroundStyle(.secondary)
+                    Text("La carpeta se ve dentro de Linux en /mnt/mac. Los paquetes que instales con apk, tu configuración (/etc) y tus archivos de /root y /home se conservan entre arranques.").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     HStack {
                         Text("Estado guardado: \(ByteCountFormatter.string(fromByteCount: MiniLinuxPersistence.sizeOnDisk, countStyle: .file))").font(.caption)
                         Spacer()

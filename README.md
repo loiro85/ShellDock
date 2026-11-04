@@ -9,9 +9,13 @@ Incluye:
 - **Productividad:** macros (grabar y reproducir), snippets con variables y pausas, túneles SSH, resaltado de palabras clave (Telnet/TCP/serie), contraseña maestra opcional.
 - **Herramientas:** escáner de puertos, ping/traceroute/DNS/whois, Wake-on-LAN, claves SSH, generador de contraseñas, hashes, Base64/URL/Hex, calculadora de subredes, fecha Unix, servidor HTTP de archivos.
 
+## Instalar
+    scripts/make_installer.sh --universal   # genera dist/ShellDock-<versión>.dmg y .pkg
+Abre el `.dmg` y arrastra ShellDock a Aplicaciones, o ejecuta el `.pkg`. Sin Developer ID, en otros Macs: clic derecho → Abrir la primera vez.
+
 ## Compilar
     scripts/build_app.sh      # genera dist/ShellDock.app (firma ad-hoc con entitlement de virtualización)
-    swift test                # 49 pruebas
+    swift test                # 69 pruebas
 
 ## Limitaciones conocidas
 - El resaltado de palabras clave aún no se aplica a SSH ni a la terminal local (SwiftTerm no permite interceptar su salida).
@@ -20,3 +24,5 @@ Incluye:
 - X11 requiere XQuartz.
 - Mini Linux necesita el entitlement `com.apple.security.virtualization`; para distribuir hace falta firmar con Developer ID.
 - Comprobar el nombre «ShellDock» (marca) antes de publicar.
+
+Documentos: `docs/PLAN.md`, `docs/MOBAXTERM_PARITY.md` (estado real frente a MobaXterm), `docs/SECURITY.md`.

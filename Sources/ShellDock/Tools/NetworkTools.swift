@@ -180,3 +180,88 @@ enum WakeOnLAN {
         return n == pkt.count
     }
 }
+
+/// Descubrimiento de equipos de una subred (barrido de ping + tabla ARP + DNS inverso).
+enum HostScanner {
+    struct Host: Identifiable, Equatable {
+        var ip: String
+        var name: String
+        var mac: String
+        var id: String { ip }
+    }
+
+    /// Direcciones a sondear: los hosts útiles de la red (máximo `limit`, para no lanzar barridos enormes sin querer).
+    static func addresses(cidr: String, limit: Int = 1022) -> [String]? {
+        guard let s = Utilities.subnet(cidr), s.hosts <= UInt64(limit) else { return nil }
+        func v(_ ip: String) -> UInt32 { ip.split(separator: ".").compactMap { UInt32($0) }.reduce(0) { $0 << 8 | $1 } }
+        return (v(s.first)...v(s.last)).map { "\($0 >> 24).\(($0 >> 16) & 255).\(($0 >> 8) & 255).\($0 & 255)" }
+    }
+
+    static func parseARP(_ text: String) -> [String: String] {
+        var out: [String: String] = [:]
+        for line in text.split(separator: "\n") {
+            // "? (192.168.1.1) at aa:bb:cc:dd:ee:ff on en0 ifscope [ethernet]"
+            guard let o = line.firstIndex(of: "("), let c = line.firstIndex(of: ")"), o < c, let at = line.range(of: " at ") else { continue }
+            let mac = line[at.upperBound...].split(separator: " ").first.map(String.init) ?? ""
+            if mac.contains(":") { out[String(line[line.index(after: o)..<c])] = mac }
+        }
+        return out
+    }
+
+    static func ping(_ ip: String) async -> Bool {
+        await withCheckedContinuation { cont in
+            DispatchQueue.global().async {
+                let p = Process()
+                p.executableURL = URL(fileURLWithPath: "/sbin/ping")
+                p.arguments = ["-c", "1", "-t", "1", "-q", ip]
+                p.standardOutput = Pipe(); p.standardError = Pipe()
+                do { try p.run() } catch { cont.resume(returning: false); return }
+                p.waitUntilExit()
+                cont.resume(returning: p.terminationStatus == 0)
+            }
+        }
+    }
+
+    static func reverseDNS(_ ip: String) -> String {
+        var addr = sockaddr_in()
+        addr.sin_len = UInt8(MemoryLayout<sockaddr_in>.size); addr.sin_family = sa_family_t(AF_INET)
+        inet_pton(AF_INET, ip, &addr.sin_addr)
+        var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+        let r = withUnsafePointer(to: &addr) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { getnameinfo($0, socklen_t(MemoryLayout<sockaddr_in>.size), &host, socklen_t(host.count), nil, 0, NI_NAMEREQD) }
+        }
+        return r == 0 ? String(cString: host) : ""
+    }
+
+    static func scan(cidr: String, concurrency: Int = 64, progress: @escaping @Sendable (Int, Int) -> Void = { _, _ in }) async -> [Host] {
+        guard let ips = addresses(cidr: cidr) else { return [] }
+        var alive: [String] = []
+        var done = 0, index = 0
+        await withTaskGroup(of: (String, Bool).self) { group in
+            func next() {
+                guard index < ips.count else { return }
+                let ip = ips[index]; index += 1
+                group.addTask { (ip, await ping(ip)) }
+            }
+            for _ in 0..<min(concurrency, ips.count) { next() }
+            while let (ip, ok) = await group.next() {
+                done += 1
+                if ok { alive.append(ip) }
+                progress(done, ips.count)
+                next()
+            }
+        }
+        let arp = await withCheckedContinuation { (c: CheckedContinuation<String, Never>) in
+            DispatchQueue.global().async {
+                let p = Process(); p.executableURL = URL(fileURLWithPath: "/usr/sbin/arp"); p.arguments = ["-an"]
+                let pipe = Pipe(); p.standardOutput = pipe; p.standardError = Pipe()
+                try? p.run()
+                let d = pipe.fileHandleForReading.readDataToEndOfFile(); p.waitUntilExit()
+                c.resume(returning: String(decoding: d, as: UTF8.self))
+            }
+        }
+        let macs = parseARP(arp)
+        return alive.sorted { $0.split(separator: ".").compactMap { Int($0) }.lexicographicallyPrecedes($1.split(separator: ".").compactMap { Int($0) }) }
+            .map { Host(ip: $0, name: reverseDNS($0), mac: macs[$0] ?? "") }
+    }
+}

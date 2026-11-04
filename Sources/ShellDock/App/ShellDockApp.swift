@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import SwiftTerm
 
 @main
 struct ShellDockApp: App {
@@ -24,6 +25,12 @@ struct ShellDockApp: App {
 }
 
 struct AppCommands: Commands {
+    /// La barra de búsqueda es la integrada en SwiftTerm; se le envía la acción estándar de «Buscar».
+    @MainActor static func find(_ action: NSFindPanelAction) {
+        let item = NSMenuItem(); item.tag = Int(action.rawValue)
+        NSApp.sendAction(#selector(TerminalView.performFindPanelAction(_:)), to: nil, from: item)
+    }
+
     @ObservedObject var state: AppState
 
     var body: some Commands {
@@ -35,6 +42,11 @@ struct AppCommands: Commands {
             Divider()
             Button("Cerrar pestaña") { if let id = state.selectedTabID { state.closeTab(id) } }.keyboardShortcut("w", modifiers: .command)
             Button("Reconectar pestaña") { state.selectedTab?.reconnect() }.keyboardShortcut("r", modifiers: [.command, .shift])
+        }
+        CommandGroup(after: .textEditing) {
+            Button("Buscar en la terminal…") { Self.find(.showFindPanel) }.keyboardShortcut("f", modifiers: .command)
+            Button("Resultado siguiente") { Self.find(.next) }.keyboardShortcut("g", modifiers: .command)
+            Button("Resultado anterior") { Self.find(.previous) }.keyboardShortcut("g", modifiers: [.command, .shift])
         }
         CommandMenu("Pestañas") {
             Button("Pestaña siguiente") { state.selectNext(1) }.keyboardShortcut("]", modifiers: [.command, .shift])
@@ -110,6 +122,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             s.open(session: sess)
         }
         else if s.tabs.isEmpty { s.openLocal() }
+        if DevMode.enabled, let sheet = ProcessInfo.processInfo.environment["SHELLDOCK_DEMO_SHEET"] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                switch sheet {
+                case "editor": var n = Session(); n.name = "Servidor web"; n.host = "web1.example.com"; n.username = "deploy"; s.editing = n
+                case "mini": var n = Session(); n.kind = .miniLinux; n.name = "Mini Linux"; s.editing = n
+                case "network": s.showNetworkTools = true
+                case "utilities": s.showUtilities = true
+                case "servers": s.showServers = true
+                case "tunnels": s.showTunnels = true
+                case "keys": s.showKeys = true
+                case "snippets": s.showSnippets = true
+                default: break
+                }
+            }
+        }
         if let cmd = probe {
             DispatchQueue.main.asyncAfter(deadline: .now() + (Double(ProcessInfo.processInfo.environment["SHELLDOCK_PROBE_WAIT"] ?? "") ?? 6.0) - 4.0) { s.selectedTab?.sendText(cmd + "\r") }
             DispatchQueue.main.asyncAfter(deadline: .now() + (Double(ProcessInfo.processInfo.environment["SHELLDOCK_PROBE_WAIT"] ?? "") ?? 6.0)) {
@@ -147,7 +174,13 @@ enum Snapshot {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             // captura real de la ventana (incluye vistas con capas Metal)
             let wid = CGWindowID(win.windowNumber)
-            if let cg = CGWindowListCreateImage(.null, .optionIncludingWindow, wid, [.boundsIgnoreFraming, .bestResolution]) {
+            var image: CGImage?
+            if win.attachedSheet != nil, let h = NSScreen.screens.first?.frame.height {
+                // con un diálogo abierto se captura el rectángulo de la ventana con lo que hay encima (la hoja)
+                let f = win.frame
+                image = CGWindowListCreateImage(CGRect(x: f.minX, y: h - f.maxY, width: f.width, height: f.height), [.optionOnScreenAboveWindow, .optionIncludingWindow], wid, [.bestResolution])
+            }
+            if let cg = image ?? CGWindowListCreateImage(.null, .optionIncludingWindow, wid, [.boundsIgnoreFraming, .bestResolution]) {
                 let rep = NSBitmapImageRep(cgImage: cg)
                 if let png = rep.representation(using: .png, properties: [:]) { try? png.write(to: URL(fileURLWithPath: path)) }
             } else if let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {

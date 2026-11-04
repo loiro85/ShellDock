@@ -35,6 +35,15 @@ struct TabButton: View {
     @EnvironmentObject var state: AppState
     @State private var hover = false
 
+    func rename() {
+        let alert = NSAlert()
+        alert.messageText = "Renombrar pestaña"
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24)); field.stringValue = tab.title
+        alert.accessoryView = field
+        alert.addButton(withTitle: "Renombrar"); alert.addButton(withTitle: "Cancelar")
+        if alert.runModal() == .alertFirstButtonReturn, !field.stringValue.isEmpty { tab.title = SessionSafety.stripControl(field.stringValue) }
+    }
+
     var selected: Bool { state.selectedTabID == tab.id }
 
     var statusColor: Color {
@@ -70,6 +79,7 @@ struct TabButton: View {
         .help(tab.status.label)
         .contextMenu {
             if tab.canReconnect { Button("Reconectar") { tab.reconnect() } }
+            Button("Renombrar pestaña…") { rename() }
             if tab.acceptsInput { Button(tab.excluded ? "Incluir en MultiExec" : "Excluir de MultiExec") { tab.excluded.toggle() } }
             Menu("Color de pestaña") {
                 Button("Ninguno") { tab.tintHex = nil }

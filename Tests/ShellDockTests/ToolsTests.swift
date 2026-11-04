@@ -527,3 +527,23 @@ final class SecurityTests: XCTestCase {
         XCTAssertEqual((resp as? HTTPURLResponse)?.statusCode, 200)
     }
 }
+
+final class HostScannerTests: XCTestCase {
+    func testAddressRange() {
+        XCTAssertEqual(HostScanner.addresses(cidr: "192.168.1.0/30"), ["192.168.1.1", "192.168.1.2"])
+        XCTAssertEqual(HostScanner.addresses(cidr: "10.0.0.5/32"), ["10.0.0.5"])
+        XCTAssertEqual(HostScanner.addresses(cidr: "10.0.0.0/24")?.count, 254)
+        XCTAssertNil(HostScanner.addresses(cidr: "10.0.0.0/8"), "barridos enormes rechazados")
+        XCTAssertNil(HostScanner.addresses(cidr: "nada"))
+    }
+
+    func testParseARP() {
+        let m = HostScanner.parseARP("? (192.168.1.1) at aa:bb:cc:dd:ee:ff on en0 ifscope [ethernet]\n? (192.168.1.9) at (incomplete) on en0 ifscope [ethernet]\n")
+        XCTAssertEqual(m, ["192.168.1.1": "aa:bb:cc:dd:ee:ff"])
+    }
+
+    func testLiveScanFindsLoopback() async {
+        let found = await HostScanner.scan(cidr: "127.0.0.1/32")
+        XCTAssertEqual(found.map(\.ip), ["127.0.0.1"])
+    }
+}
