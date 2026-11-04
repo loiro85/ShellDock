@@ -2,11 +2,17 @@ import SwiftUI
 
 struct TabBarView: View {
     @EnvironmentObject var state: AppState
+    @State private var dragging: UUID?
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 2) {
-                ForEach(state.tabs) { tab in TabButton(tab: tab) }
+                ForEach(state.tabs) { tab in
+                    TabButton(tab: tab)
+                        .opacity(dragging == tab.id ? 0.45 : 1)
+                        .onDrag { dragging = tab.id; return NSItemProvider(object: tab.id.uuidString as NSString) }
+                        .onDrop(of: [.plainText], delegate: TabDropDelegate(target: tab.id, dragging: $dragging, state: state))
+                }
                 Menu {
                     Button("Terminal local") { state.openLocal() }
                     Button("Mini Linux") { state.openMiniLinux() }
@@ -28,6 +34,22 @@ struct TabBarView: View {
         .frame(height: 34)
         .background(.bar)
     }
+}
+
+/// Reordena las pestañas al arrastrarlas: la pestaña arrastrada ocupa el sitio de la que tiene debajo.
+struct TabDropDelegate: DropDelegate {
+    let target: UUID
+    @Binding var dragging: UUID?
+    let state: AppState
+
+    func dropEntered(info: DropInfo) {
+        guard let from = dragging, from != target,
+              let a = state.tabs.firstIndex(where: { $0.id == from }), let b = state.tabs.firstIndex(where: { $0.id == target }) else { return }
+        withAnimation(.easeInOut(duration: 0.15)) { state.tabs.move(fromOffsets: IndexSet(integer: a), toOffset: b > a ? b + 1 : b) }
+    }
+    func dropUpdated(info: DropInfo) -> DropProposal? { DropProposal(operation: .move) }
+    func performDrop(info: DropInfo) -> Bool { dragging = nil; return true }
+    func dropExited(info: DropInfo) {}
 }
 
 struct TabButton: View {

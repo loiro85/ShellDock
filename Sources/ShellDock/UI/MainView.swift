@@ -43,28 +43,50 @@ struct MainView: View {
     }
 }
 
-/// Borde arrastrable de la barra lateral: cambia el ancho (se guarda en Ajustes); doble clic restablece; arrastrar hasta el límite la oculta.
-struct SidebarResizer: View {
-    static let minWidth: Int = 180, maxWidth: Int = 640, defaultWidth: Int = 290
+/// Borde arrastrable de la barra lateral (AppKit, para que el ratón y el trackpad siempre lo reciban):
+/// arrastrar cambia el ancho (se guarda en Ajustes), doble clic lo restablece y arrastrar hasta el límite izquierdo oculta la barra.
+struct SidebarResizer: NSViewRepresentable {
+    static let minWidth = 180, maxWidth = 640, defaultWidth = 290
     @EnvironmentObject var state: AppState
-    @State private var startWidth: Int?
 
-    var body: some View {
-        Color.clear.frame(width: 7).contentShape(Rectangle())
-            .overlay { Rectangle().fill(Color(nsColor: .separatorColor)).frame(width: 1) }
-            .onHover { inside in if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() } }
-            .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
-                .onChanged { g in
-                    let start = startWidth ?? state.settings.data.sidebarWidth
-                    startWidth = start
-                    state.settings.data.sidebarWidth = min(max(start + Int(g.translation.width), Self.minWidth), Self.maxWidth)
-                }
-                .onEnded { g in
-                    if let start = startWidth, start + Int(g.translation.width) < Self.minWidth - 60 { state.sidebarVisible = false }
-                    startWidth = nil
-                })
-            .onTapGesture(count: 2) { state.settings.data.sidebarWidth = Self.defaultWidth }
+    final class Handle: NSView {
+        var width: () -> Int = { 290 }
+        var setWidth: (Int) -> Void = { _ in }
+        var hide: () -> Void = {}
+        private var startX: CGFloat = 0, startWidth = 290
+
+        override var mouseDownCanMoveWindow: Bool { false }
+        override var acceptsFirstResponder: Bool { false }
+        override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+        override func resetCursorRects() { addCursorRect(bounds, cursor: .resizeLeftRight) }
+        override func draw(_ dirtyRect: NSRect) {
+            NSColor.separatorColor.setFill()
+            NSRect(x: bounds.midX - 0.5, y: 0, width: 1, height: bounds.height).fill()
+        }
+        override func mouseDown(with e: NSEvent) {
+            if e.clickCount == 2 { setWidth(SidebarResizer.defaultWidth); return }
+            startX = e.locationInWindow.x; startWidth = width()
+        }
+        override func mouseDragged(with e: NSEvent) {
+            let w = startWidth + Int(e.locationInWindow.x - startX)
+            setWidth(min(max(w, SidebarResizer.minWidth), SidebarResizer.maxWidth))
+        }
+        override func mouseUp(with e: NSEvent) {
+            if startWidth + Int(e.locationInWindow.x - startX) < SidebarResizer.minWidth - 60 { hide() }
+        }
     }
+
+    func makeNSView(context: Context) -> Handle {
+        let h = Handle()
+        h.setContentHuggingPriority(.required, for: .horizontal)
+        return h
+    }
+    func updateNSView(_ h: Handle, context: Context) {
+        h.width = { state.settings.data.sidebarWidth }
+        h.setWidth = { state.settings.data.sidebarWidth = $0 }
+        h.hide = { state.sidebarVisible = false }
+    }
+    func sizeThatFits(_ proposal: ProposedViewSize, nsView: Handle, context: Context) -> CGSize? { CGSize(width: 8, height: proposal.height ?? 100) }
 }
 
 /// Contenedor que muestra la vista nativa de la pestaña activa (la misma instancia, sin recrearla).

@@ -38,11 +38,12 @@ final class AppState: ObservableObject {
         // con --demo los datos de ejemplo van a un archivo temporal: nunca ensucian las sesiones reales
         let demoURL = FileManager.default.temporaryDirectory.appendingPathComponent("shelldock-demo-\(UUID().uuidString).json")
         let st = store ?? (DevMode.enabled && CommandLine.arguments.contains("--demo") ? SessionStore(url: demoURL) : SessionStore())
-        let se = settings ?? AppSettings()
+        let demoMode = DevMode.enabled && CommandLine.arguments.contains("--demo")
+        let se = settings ?? (demoMode ? AppSettings(url: demoURL.deletingLastPathComponent().appendingPathComponent("shelldock-demo-settings-\(UUID().uuidString).json")) : AppSettings())
         self.store = st
         self.settings = se
         language = Loc.set(DevMode.enabled ? (ProcessInfo.processInfo.environment["SHELLDOCK_LANG"] ?? se.data.language) : se.data.language)
-        UserDefaults.standard.set([Loc.code], forKey: "AppleLanguages")
+        if !demoMode { UserDefaults.standard.set([Loc.code], forKey: "AppleLanguages") }
         se.$data.map(\.language).removeDuplicates().dropFirst().sink { [weak self] code in
             self?.language = Loc.set(code)
             UserDefaults.standard.set([Loc.code], forKey: "AppleLanguages")      // menús y diálogos del sistema, tras reiniciar
@@ -52,6 +53,7 @@ final class AppState: ObservableObject {
             DispatchQueue.main.async { for t in self.tabs { t.appearanceChanged(self.settings) } }
         }.store(in: &bag)
         st.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
+        se.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)      // p. ej. ancho de la barra lateral
     }
 
     var selectedTab: TerminalTab? { tabs.first { $0.id == selectedTabID } }
