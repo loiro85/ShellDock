@@ -59,7 +59,9 @@ enum NetworkTool: String, CaseIterable, Identifiable {
 
     var needsHost: Bool { [.ping, .traceroute, .dns, .whois].contains(self) }
 
-    func command(host: String) -> (String, [String]) {
+    func command(host rawHost: String) -> (String, [String]) {
+        let host = rawHost.trimmingCharacters(in: .whitespaces)
+        if needsHost, let problem = SessionSafety.toolHostError(host) { return ("/bin/echo", [problem]) }     // nunca se pasa a una orden algo que parezca una opción
         switch self {
         case .ping: return ("/sbin/ping", ["-c", "6", host])
         case .traceroute: return ("/usr/sbin/traceroute", ["-m", "25", "-w", "2", host])

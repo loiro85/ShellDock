@@ -294,7 +294,7 @@ final class SFTPClient: @unchecked Sendable {
                 let name = try r.string()
                 _ = try r.string()
                 let a = try Self.parseAttrs(&r)
-                if name == "." || name == ".." { continue }
+                if !SessionSafety.isSafeRemoteName(name) { continue }      // un servidor malicioso no puede sacar descargas de su carpeta
                 let full = dir == "/" ? "/" + name : (dir.hasSuffix("/") ? dir + name : dir + "/" + name)
                 out.append(RemoteFile(name: name, path: full, size: a.size, permissions: a.perms, mtime: a.mtime, uid: a.uid, gid: a.gid))
             }

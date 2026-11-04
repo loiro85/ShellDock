@@ -35,8 +35,15 @@ final class SessionStore: ObservableObject {
     func load() {
         loading = true
         defer { loading = false }
-        guard let data = try? Data(contentsOf: url),
-              let d = try? JSONDecoder().decode(StoreData.self, from: data) else { return }
+        guard let data = try? Data(contentsOf: url) else { return }
+        guard let d = try? TolerantJSON.decodeStore(data) else {
+            // archivo ilegible: se conserva una copia para no perder nada al guardar de nuevo
+            let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
+            let backup = url.deletingLastPathComponent().appendingPathComponent("sessions.corrupt-\(stamp).json")
+            try? FileManager.default.moveItem(at: url, to: backup)
+            NSLog("ShellDock: sessions.json ilegible; copia en \(backup.path)")
+            return
+        }
         sessions = d.sessions
         folders = d.folders
         snippets = d.snippets
@@ -52,6 +59,7 @@ final class SessionStore: ObservableObject {
         let tmp = url.appendingPathExtension("tmp")
         do {
             try data.write(to: tmp, options: .atomic)
+            try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: tmp.path)     // nombres de host y usuarios: solo el propietario
             _ = try? FileManager.default.replaceItemAt(url, withItemAt: tmp)
             if !FileManager.default.fileExists(atPath: url.path) {
                 try FileManager.default.moveItem(at: tmp, to: url)
@@ -71,9 +79,9 @@ final class SessionStore: ObservableObject {
     /// Importa un JSON exportado (fusiona; los ids existentes se reemplazan).
     @discardableResult
     func importData(_ data: Data) -> Int {
-        guard let d = try? JSONDecoder().decode(StoreData.self, from: data) else { return 0 }
+        guard let d = try? TolerantJSON.decodeStore(data) else { return 0 }
         for f in d.folders { upsert(folder: f) }
-        for s in d.sessions { upsert(session: s) }
+        for s in d.sessions { upsert(session: s.sanitizedForImport()) }
         for s in d.snippets where !snippets.contains(where: { $0.id == s.id }) { snippets.append(s) }
         for t in d.savedTunnels where !savedTunnels.contains(where: { $0.id == t.id }) { savedTunnels.append(t) }
         return d.sessions.count

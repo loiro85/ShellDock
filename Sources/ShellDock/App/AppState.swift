@@ -35,7 +35,7 @@ final class AppState: ObservableObject {
     init(store: SessionStore? = nil, settings: AppSettings? = nil) {
         // con --demo los datos de ejemplo van a un archivo temporal: nunca ensucian las sesiones reales
         let demoURL = FileManager.default.temporaryDirectory.appendingPathComponent("shelldock-demo-\(UUID().uuidString).json")
-        let st = store ?? (CommandLine.arguments.contains("--demo") ? SessionStore(url: demoURL) : SessionStore())
+        let st = store ?? (DevMode.enabled && CommandLine.arguments.contains("--demo") ? SessionStore(url: demoURL) : SessionStore())
         let se = settings ?? AppSettings()
         self.store = st
         self.settings = se
@@ -84,6 +84,7 @@ final class AppState: ObservableObject {
     }
 
     func open(session s: Session) {
+        if let problem = s.validationError { toast = "No se abre la sesión: \(problem)"; return }
         switch s.kind {
         case .ssh:
             let data = settings.data
@@ -123,18 +124,24 @@ final class AppState: ObservableObject {
 
     /// Conexión rápida: `usuario@host[:puerto]`, `ssh://…`, `telnet://…`.
     func quickConnect(_ text: String) {
+        guard let s = parseQuick(text) else { return }
+        open(session: s)
+    }
+
+    func parseQuick(_ text: String) -> Session? {
         var t = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !t.isEmpty else { return }
+        guard !t.isEmpty else { return nil }
         var kind = SessionKind.ssh
         if let r = t.range(of: "://") {
             let scheme = String(t[t.startIndex..<r.lowerBound]).lowercased()
             if scheme == "http" || scheme == "https" {
                 var w = Session(); w.kind = .browser; w.name = text; w.host = text
-                open(session: w); return
+                return w
             }
             kind = SessionKind(rawValue: scheme) ?? .ssh
             t = String(t[r.upperBound...])
         }
+        if let slash = t.firstIndex(of: "/") { t = String(t[t.startIndex..<slash]) }      // ssh://host/ruta → host
         var s = Session()
         s.kind = kind
         s.port = kind.defaultPort
@@ -148,7 +155,20 @@ final class AppState: ObservableObject {
         }
         s.host = t
         s.name = s.username.isEmpty ? s.host : "\(s.username)@\(s.host)"
-        open(session: s)
+        return s
+    }
+
+    /// Enlaces ssh:// y telnet:// de otras aplicaciones o páginas web: siempre se pide confirmación antes de conectar.
+    func openExternal(_ url: URL) {
+        guard let scheme = url.scheme?.lowercased(), scheme == "ssh" || scheme == "telnet", var s = parseQuick(url.absoluteString) else { return }
+        s = s.sanitizedForImport()
+        if let problem = s.validationError { toast = "Enlace rechazado: \(problem)"; return }
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.messageText = "¿Abrir una conexión \(s.kind.title)?"
+        alert.informativeText = "Una página web o aplicación pide conectar a \(s.username.isEmpty ? "" : s.username + "@")\(s.host):\(s.port). Conecta solo si reconoces el servidor."
+        alert.addButton(withTitle: "Conectar"); alert.addButton(withTitle: "Cancelar")
+        if alert.runModal() == .alertFirstButtonReturn { open(session: s) }
     }
 
     // MARK: cerrar / navegar
@@ -266,7 +286,10 @@ enum LogFiles {
     static func newLog(for name: String) -> URL {
         let f = DateFormatter()
         f.dateFormat = "yyyyMMdd-HHmmss"
-        let safe = name.replacingOccurrences(of: "/", with: "_")
-        return Paths.logsDir.appendingPathComponent("\(safe)-\(f.string(from: Date())).log")
+        let safe = name.replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "..", with: "_")
+        let url = Paths.logsDir.appendingPathComponent("\(safe)-\(f.string(from: Date())).log")
+        // el log puede contener datos sensibles: se crea solo legible por el propietario
+        FileManager.default.createFile(atPath: url.path, contents: nil, attributes: [.posixPermissions: 0o600])
+        return url
     }
 }

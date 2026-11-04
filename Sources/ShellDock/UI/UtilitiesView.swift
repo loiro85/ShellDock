@@ -120,6 +120,7 @@ struct ServersView: View {
     @State private var folder = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Public")
     @State private var port = 8000
     @State private var error = ""
+    @State private var lan = false
 
     var server: HTTPFileServer { state.httpServer }
 
@@ -138,14 +139,15 @@ struct ServersView: View {
                     if p.runModal() == .OK, let u = p.url { folder = u }
                 }.disabled(server.running)
             }
+            Toggle("Accesible desde la red local (sin contraseña: cualquiera en tu red podrá leer esa carpeta)", isOn: $lan).disabled(server.running).font(.caption)
             HStack {
                 TextField("Puerto", value: $port, format: .number.grouping(.never)).frame(width: 110).disabled(server.running)
                 if server.running {
                     Button("Detener") { server.stop() }
-                    Text("http://\(Self.localIP()):\(server.port)/").font(.system(size: 12, design: .monospaced)).textSelection(.enabled).foregroundStyle(.green)
+                    Text("http://\(lan ? Self.localIP() : "127.0.0.1"):\(server.port)/").font(.system(size: 12, design: .monospaced)).textSelection(.enabled).foregroundStyle(.green)
                 } else {
                     Button("Iniciar") {
-                        do { try server.start(folder: folder, port: UInt16(clamping: port)); error = "" } catch let e { error = e.localizedDescription }
+                        do { try server.start(folder: folder, port: UInt16(clamping: port), localOnly: !lan); error = "" } catch let e { error = e.localizedDescription }
                     }.keyboardShortcut(.defaultAction)
                 }
             }

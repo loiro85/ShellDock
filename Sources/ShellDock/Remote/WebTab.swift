@@ -23,7 +23,7 @@ final class WebTab: TerminalTab {
 
     override func start() {
         status = .connecting
-        guard let url = URL(string: address) else { status = .failed("Dirección no válida"); return }
+        guard let url = URL(string: address), ["http", "https"].contains(url.scheme?.lowercased() ?? "") else { status = .failed("Solo se admiten direcciones http y https"); return }
         web.load(URLRequest(url: url))
     }
 

@@ -1,5 +1,6 @@
 import Foundation
 import Virtualization
+import CryptoKit
 
 /// "Mini Linux" interno: Alpine Linux arrancado con Virtualization.framework y consola serie integrada.
 @MainActor
@@ -7,6 +8,20 @@ final class MiniLinuxVM: NSObject, VZVirtualMachineDelegate {
     static let alpineVersion = "3.24.3"
     static var isoName: String { "alpine-virt-\(alpineVersion)-\(Host.current().isARM ? "aarch64" : "x86_64").iso" }
     static var isoURL: URL { URL(string: "https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/\(Host.current().isARM ? "aarch64" : "x86_64")/\(isoName)")! }
+
+    /// SHA-256 oficiales de Alpine (https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/<arch>/<iso>.sha256).
+    static let isoSHA256 = Host.current().isARM
+        ? "e34603080e942e9ebc670689eee77dd7a6551c823a6ff5a299e308ded268098f"
+        : "cdc1bc0efc64d8d611bf3733f54868172a545888dfd726f518bf279bcb0ff1af"
+
+    /// Hash por bloques para no cargar toda la imagen en memoria.
+    static func sha256(of url: URL) throws -> String {
+        let h = try FileHandle(forReadingFrom: url)
+        defer { try? h.close() }
+        var hasher = SHA256()
+        while let chunk = try h.read(upToCount: 1 << 20), !chunk.isEmpty { hasher.update(data: chunk) }
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+    }
 
     struct Assets { var kernel: URL; var initrd: URL; var iso: URL }
 
@@ -28,6 +43,7 @@ final class MiniLinuxVM: NSObject, VZVirtualMachineDelegate {
     var onOutput: (([UInt8]) -> Void)?
     var onStopped: ((String?) -> Void)?
     var sharedFolder: URL?
+    var persistFolder: URL?
     var memoryMB = 1024
     var cpus = max(2, min(4, ProcessInfo.processInfo.activeProcessorCount / 2))
 
@@ -47,8 +63,16 @@ final class MiniLinuxVM: NSObject, VZVirtualMachineDelegate {
             progress("Descargando Alpine Linux (~90 MB, solo la primera vez)…")
             let (tmp, resp) = try await URLSession.shared.download(from: isoURL)
             guard (resp as? HTTPURLResponse)?.statusCode == 200 else { throw VMError.download("HTTP \((resp as? HTTPURLResponse)?.statusCode ?? 0)") }
+            guard try Self.sha256(of: tmp) == Self.isoSHA256 else {
+                try? fm.removeItem(at: tmp)
+                throw VMError.download("la imagen descargada no coincide con el SHA-256 oficial de Alpine (no se usará)")
+            }
             try? fm.removeItem(at: iso)
             try fm.moveItem(at: tmp, to: iso)
+        } else if iso.deletingLastPathComponent() == dir, try Self.sha256(of: iso) != Self.isoSHA256 {
+            // la copia en caché fue modificada o está dañada: se descarta y se vuelve a descargar
+            try? fm.removeItem(at: iso); try? fm.removeItem(at: kernel); try? fm.removeItem(at: initrd)
+            return try await prepareAssets(progress: progress)
         }
         if !fm.fileExists(atPath: kernel.path) || !fm.fileExists(atPath: initrd.path) {
             progress("Extrayendo kernel e initramfs…")
@@ -117,11 +141,14 @@ final class MiniLinuxVM: NSObject, VZVirtualMachineDelegate {
         cfg.entropyDevices = [VZVirtioEntropyDeviceConfiguration()]
         cfg.memoryBalloonDevices = [VZVirtioTraditionalMemoryBalloonDeviceConfiguration()]
 
-        if let dir = sharedFolder {
-            let fs = VZVirtioFileSystemDeviceConfiguration(tag: "mac")
+        var shares: [VZVirtioFileSystemDeviceConfiguration] = []
+        for (tag, dir) in [("mac", sharedFolder), ("persist", persistFolder)] {
+            guard let dir else { continue }
+            let fs = VZVirtioFileSystemDeviceConfiguration(tag: tag)
             fs.share = VZSingleDirectoryShare(directory: VZSharedDirectory(url: dir, readOnly: false))
-            cfg.directorySharingDevices = [fs]
+            shares.append(fs)
         }
+        cfg.directorySharingDevices = shares
         do { try cfg.validate() } catch { throw VMError.configuration(error.localizedDescription) }
         return cfg
     }

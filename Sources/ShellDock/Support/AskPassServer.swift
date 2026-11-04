@@ -53,6 +53,9 @@ final class AskPassServer: @unchecked Sendable {
     private func acceptOne() {
         let c = accept(listenFD, nil, nil)
         guard c >= 0 else { return }
+        // solo se atiende a procesos del mismo usuario
+        var peerUID: uid_t = 0, peerGID: gid_t = 0
+        guard getpeereid(c, &peerUID, &peerGID) == 0, peerUID == getuid() else { Darwin.close(c); return }
         queue.async { [token] in
             defer { Darwin.close(c) }
             var tv = timeval(tv_sec: 3, tv_usec: 0)

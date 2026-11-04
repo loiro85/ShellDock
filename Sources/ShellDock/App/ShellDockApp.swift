@@ -64,6 +64,9 @@ extension Notification.Name {
     static let focusQuickConnect = Notification.Name("ShellDock.focusQuickConnect")
 }
 
+/// Las opciones de desarrollo (--demo, --probe, --snapshot, --open, --vm-selftest) solo existen con SHELLDOCK_DEV=1 en el entorno.
+enum DevMode { static let enabled = ProcessInfo.processInfo.environment["SHELLDOCK_DEV"] != nil }
+
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private weak var state: AppState?
     private var snapshotPath: String?
@@ -73,7 +76,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
-        let args = CommandLine.arguments
+        let args = DevMode.enabled ? CommandLine.arguments : []
         if let i = args.firstIndex(of: "--snapshot"), args.indices.contains(i + 1) { snapshotPath = args[i + 1] }
         demo = args.contains("--demo")
         if let i = args.firstIndex(of: "--probe"), args.indices.contains(i + 1) { probe = args[i + 1] }
@@ -82,7 +85,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.activate(ignoringOtherApps: true)
-        if CommandLine.arguments.contains("--vm-selftest") { Task { @MainActor in await VMSelfTest.run() } }
+        if DevMode.enabled && CommandLine.arguments.contains("--vm-selftest") { Task { @MainActor in await VMSelfTest.run() } }
+    }
+
+    private var pendingURLs: [URL] = []
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        Task { @MainActor in
+            if let state { urls.forEach(state.openExternal) } else { pendingURLs += urls }
+        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
@@ -91,8 +102,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func attach(_ s: AppState) {
         guard state == nil else { return }
         state = s
+        defer { pendingURLs.forEach(s.openExternal); pendingURLs = [] }
         if demo { DemoData.populate(s) }
-        else if let f = openFile, let d = try? Data(contentsOf: URL(fileURLWithPath: f)), let sess = try? JSONDecoder().decode(Session.self, from: d) { s.open(session: sess) }
+        else if let f = openFile, let d = try? Data(contentsOf: URL(fileURLWithPath: f)), var sess = try? TolerantJSON.decode(Session.self, from: d, defaults: Session()) {
+            // solo para pruebas: guarda la contraseña de la sesión en el Llavero antes de abrirla
+            if let pw = ProcessInfo.processInfo.environment["SHELLDOCK_DEV_PASSWORD"] { s.store.setPassword(pw, for: &sess) }
+            s.open(session: sess)
+        }
         else if s.tabs.isEmpty { s.openLocal() }
         if let cmd = probe {
             DispatchQueue.main.asyncAfter(deadline: .now() + (Double(ProcessInfo.processInfo.environment["SHELLDOCK_PROBE_WAIT"] ?? "") ?? 6.0) - 4.0) { s.selectedTab?.sendText(cmd + "\r") }
@@ -110,7 +126,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         if let path = snapshotPath {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { Snapshot.take(to: path) }
+            DispatchQueue.main.asyncAfter(deadline: .now() + (Double(ProcessInfo.processInfo.environment["SHELLDOCK_SNAP_DELAY"] ?? "") ?? 3.0)) { Snapshot.take(to: path) }
         }
     }
 
@@ -151,6 +167,7 @@ enum VMSelfTest {
         func log(_ s: String) { FileHandle.standardOutput.write(Data((s + "\n").utf8)) }
         log("VM soportada: \(MiniLinuxVM.supported)")
         let vm = MiniLinuxVM()
+        if (try? MiniLinuxPersistence.prepare()) != nil { vm.persistFolder = MiniLinuxPersistence.folder }
         var buffer = ""
         vm.onOutput = { buffer += String(decoding: $0, as: UTF8.self) }
         vm.onStopped = { e in log("VM detenida \(e ?? "")") }
@@ -171,8 +188,12 @@ enum VMSelfTest {
                 vm.send(Array("root\r".utf8))
                 if await wait("#", 20) {
                     buffer = ""
-                    vm.send(Array("uname -a; cat /etc/alpine-release; echo FIN-$((6*7))\r".utf8))
-                    _ = await wait("FIN-42", 20)
+                    vm.send(Array((MiniLinuxPersistence.setupLine(cols: 100, rows: 30) + "\r").utf8))
+                    _ = await wait("Alpine Linux 3", 120)
+                    buffer = ""
+                    let cmd = ProcessInfo.processInfo.environment["SHELLDOCK_VM_CMD"] ?? "uname -a; cat /etc/alpine-release"
+                    vm.send(Array("\(cmd); echo FIN-$((6*7))\r".utf8))
+                    _ = await wait("FIN-42", Double(ProcessInfo.processInfo.environment["SHELLDOCK_VM_WAIT"] ?? "") ?? 20)
                     log("=== SALIDA DEL LINUX ===\n" + buffer + "\n=== FIN ===")
                 } else { log("sin prompt tras el login:\n" + buffer) }
             } else {

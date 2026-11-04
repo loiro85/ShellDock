@@ -11,10 +11,13 @@ final class HTTPFileServer: ObservableObject {
     private var listener: NWListener?
     private var root = URL(fileURLWithPath: "/")
 
-    func start(folder: URL, port: UInt16) throws {
+    /// `localOnly`: solo accesible desde este Mac (127.0.0.1). Sin autenticación, publicar en la red es una decisión explícita.
+    func start(folder: URL, port: UInt16, localOnly: Bool = true) throws {
         stop()
         root = folder.standardizedFileURL.resolvingSymlinksInPath()
-        let l = try NWListener(using: .tcp, on: NWEndpoint.Port(rawValue: port) ?? .any)
+        let params = NWParameters.tcp
+        if localOnly { params.requiredInterfaceType = .loopback }
+        let l = try NWListener(using: params, on: NWEndpoint.Port(rawValue: port) ?? .any)
         l.stateUpdateHandler = { [weak self] st in
             Task { @MainActor in
                 guard let self else { return }

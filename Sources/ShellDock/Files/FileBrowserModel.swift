@@ -304,7 +304,7 @@ final class FileBrowserModel: ObservableObject {
     func edit(_ f: RemoteFile) {
         guard let c = client else { return }
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("shelldock-edit-\(UUID().uuidString.prefix(8))")
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         let local = dir.appendingPathComponent(f.name)
         track(Transfer(name: f.name, direction: .download)) { report in
             try await c.download(remote: f.path, to: local, progress: report)
@@ -320,7 +320,7 @@ final class FileBrowserModel: ObservableObject {
         guard let c = client else { return }
         if f.size > 8 * 1024 * 1024 { message = "\(f.name) pesa más de 8 MB: se abre con la app del sistema"; edit(f); return }
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("shelldock-edit-\(UUID().uuidString.prefix(8))")
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         let local = dir.appendingPathComponent(f.name)
         track(Transfer(name: f.name, direction: .download)) { report in
             try await c.download(remote: f.path, to: local, progress: report)

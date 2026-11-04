@@ -8,6 +8,16 @@ struct Ribbon: View {
     var quickFocused: FocusState<Bool>.Binding
 
     var body: some View {
+        HStack(spacing: 8) {
+            ScrollView(.horizontal, showsIndicators: false) { buttons }
+            quickConnect
+        }
+        .padding(.horizontal, 8).padding(.vertical, 4)
+        .background(.bar)
+    }
+
+    /// Los botones van en un ScrollView: si la ventana es estrecha se desplazan en vez de ensanchar toda la interfaz.
+    var buttons: some View {
         HStack(spacing: 2) {
             RibbonButton(icon: "person.crop.rectangle.badge.plus", label: "Sesión", help: "Nueva sesión (⌘N)") { state.editing = Session() }
             RibbonButton(icon: "apple.terminal", label: "Terminal", help: "Nueva terminal local (⌘T)") { state.openLocal() }
@@ -38,19 +48,20 @@ struct Ribbon: View {
             RibbonButton(icon: "square.grid.2x2", label: "Dividir", help: "Ver todas las terminales a la vez", active: state.tiled) { state.tiled.toggle() }
             RibbonButton(icon: "dot.radiowaves.left.and.right", label: "MultiExec", help: "Escribir en todas las terminales a la vez", active: state.multiExec) { state.multiExec.toggle() }
             RibbonButton(icon: "gearshape", label: "Ajustes", help: "Preferencias") { SettingsOpener.open() }
-            Spacer(minLength: 8)
-            HStack(spacing: 6) {
-                Image(systemName: "bolt.horizontal").foregroundStyle(.secondary)
-                TextField("Conexión rápida: usuario@host  (⌘K)", text: $quick)
-                    .textFieldStyle(.plain).frame(minWidth: 160, maxWidth: 260)
-                    .focused(quickFocused)
-                    .onSubmit { state.quickConnect(quick); quick = "" }
-            }
-            .padding(.horizontal, 8).padding(.vertical, 5)
-            .background(RoundedRectangle(cornerRadius: 7).fill(Color.primary.opacity(0.07)))
         }
-        .padding(.horizontal, 8).padding(.vertical, 4)
-        .background(.bar)
+    }
+
+    var quickConnect: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "bolt.horizontal").foregroundStyle(.secondary)
+            TextField("Conexión rápida (⌘K)", text: $quick)
+                .textFieldStyle(.plain)
+                .focused(quickFocused)
+                .onSubmit { state.quickConnect(quick); quick = "" }
+        }
+        .padding(.horizontal, 8).padding(.vertical, 5)
+        .frame(minWidth: 110, idealWidth: 150, maxWidth: 190)
+        .background(RoundedRectangle(cornerRadius: 7).fill(Color.primary.opacity(0.07)))
     }
 }
 
@@ -67,7 +78,7 @@ struct RibbonButton: View {
                 Text(label).font(.system(size: 10.5)).lineLimit(1)
             }
             .foregroundStyle(active ? Color.accentColor : Color.primary)
-            .frame(minWidth: 62).padding(.vertical, 4).padding(.horizontal, 4)
+            .frame(minWidth: 52).padding(.vertical, 4).padding(.horizontal, 3)
             .background(RoundedRectangle(cornerRadius: 7).fill(active ? Color.accentColor.opacity(0.16) : (hover ? Color.primary.opacity(0.08) : .clear)))
             .contentShape(Rectangle())
         }

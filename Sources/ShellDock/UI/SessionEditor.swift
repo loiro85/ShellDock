@@ -6,6 +6,7 @@ struct SessionEditor: View {
     @Environment(\.dismiss) var dismiss
     @State var session: Session
     @State private var password = ""
+    @State private var confirmReset = false
     @State private var passphrase = ""
     @State private var tab = 0
     @State private var newTunnel = Tunnel()
@@ -114,13 +115,26 @@ struct SessionEditor: View {
                     Toggle("Cifrar con TLS (FTPS)", isOn: $session.ftpTLS)
                 }
             }
+            if [.telnet, .rlogin, .tcp].contains(session.kind) || (session.kind == .ftp && !session.ftpTLS) || session.kind == .vnc {
+                Label("Este protocolo no cifra la conexión: no lo uses por redes no fiables. Para ello prefiere SSH/SFTP (o FTPS).", systemImage: "exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(.orange)
+            }
             if session.kind == .serial { serialSection }
             if session.kind == .miniLinux {
                 Section("Mini Linux (Alpine en una máquina virtual)") {
                     Stepper(session.vmMemoryMB == 0 ? "Memoria: 1024 MB (predeterminado)" : "Memoria: \(session.vmMemoryMB) MB", value: $session.vmMemoryMB, in: 0...16384, step: 256)
                     Stepper(session.vmCPUs == 0 ? "CPUs: automático" : "CPUs: \(session.vmCPUs)", value: $session.vmCPUs, in: 0...8)
                     TextField("Carpeta compartida con el Mac (vacío = ~/ShellDock-Linux)", text: $session.sharedFolder)
-                    Text("La carpeta se ve dentro de Linux en /mnt/mac. El sistema vive en memoria: lo que guardes fuera de esa carpeta se pierde al apagar.").font(.caption).foregroundStyle(.secondary)
+                    Text("La carpeta se ve dentro de Linux en /mnt/mac. Los paquetes que instales con apk, tu configuración (/etc) y tus archivos de /root y /home se conservan entre arranques.").font(.caption).foregroundStyle(.secondary)
+                    HStack {
+                        Text("Estado guardado: \(ByteCountFormatter.string(fromByteCount: MiniLinuxPersistence.sizeOnDisk, countStyle: .file))").font(.caption)
+                        Spacer()
+                        Button("Restablecer Mini Linux…", role: .destructive) { confirmReset = true }
+                    }
+                    .confirmationDialog("Se borrarán los paquetes instalados, la configuración y los archivos de /root y /home. La carpeta compartida del Mac no se toca.", isPresented: $confirmReset, titleVisibility: .visible) {
+                        Button("Borrar estado", role: .destructive) { try? MiniLinuxPersistence.reset() }
+                        Button("Cancelar", role: .cancel) {}
+                    }
                 }
             }
             if session.kind == .rdp {

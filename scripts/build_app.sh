@@ -41,7 +41,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 pkill -f "ShellDock.app/Contents/MacOS" 2>/dev/null || true
 xattr -cr "$APP"
-codesign --force --sign "${SIGN_IDENTITY:--}" --entitlements scripts/Entitlements.plist "$APP"
+codesign --force --options runtime --timestamp=none --sign "${SIGN_IDENTITY:--}" --entitlements scripts/Entitlements.plist "$APP"
 codesign --verify --deep --strict "$APP"
 codesign -d --entitlements - "$APP" 2>&1 | grep -q "com.apple.security.virtualization" || { echo "ERROR: falta el entitlement de virtualización"; exit 1; }
 echo "OK → $APP"

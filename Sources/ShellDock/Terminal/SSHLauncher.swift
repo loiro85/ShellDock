@@ -77,7 +77,7 @@ enum SSHLauncher {
         if s.compression { args.append("-C") }
         for t in s.tunnels { args += t.sshArguments }
         args += ShellSplit.split(s.extraArguments)
-        args.append(s.host)
+        args += ["--", s.host]          // «--»: lo que sigue nunca se interpreta como opción
         let cmd = s.startupCommand.trimmingCharacters(in: .whitespacesAndNewlines)
         if !cmd.isEmpty {
             args.insert("-t", at: 0)
@@ -98,7 +98,7 @@ enum SSHLauncher {
     static func sftpSubsystemArguments(_ s: Session, hostKeyPolicy: String) -> [String] {
         var a = commonOptions(s, hostKeyPolicy: hostKeyPolicy, master: false)
         a += targetArguments(s)
-        a += ["-o", "ConnectTimeout=15", "-s", s.host, "sftp"]
+        a += ["-o", "ConnectTimeout=15", "-s", "--", s.host, "sftp"]
         return a
     }
 
@@ -106,7 +106,7 @@ enum SSHLauncher {
     static func masterIsAlive(_ s: Session, hostKeyPolicy: String) -> Bool {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: sshPath)
-        p.arguments = ["-o", "ControlPath=\(controlPath())"] + targetArguments(s) + ["-O", "check", s.host]
+        p.arguments = ["-o", "ControlPath=\(controlPath())"] + targetArguments(s) + ["-O", "check", "--", s.host]
         p.standardOutput = Pipe()
         p.standardError = Pipe()
         do { try p.run() } catch { return false }

@@ -35,6 +35,7 @@ final class VMConsoleTransport: ByteTransport {
         let share = Self.shareURL(for: session)
         try? FileManager.default.createDirectory(at: share, withIntermediateDirectories: true)
         vm.sharedFolder = share
+        if (try? MiniLinuxPersistence.prepare()) != nil { vm.persistFolder = MiniLinuxPersistence.folder }
         vm.onOutput = { [weak self] bytes in self?.guestOutput(bytes) }
         vm.onStopped = { [weak self] err in
             guard let self, !self.closed else { return }
@@ -62,14 +63,7 @@ final class VMConsoleTransport: ByteTransport {
             vm.send(Array("root\r".utf8))
         } else if loggedIn, !setupSent, tail.hasSuffix("# ") || tail.contains("# \u{1b}[6n") || tail.hasSuffix("#") {
             setupSent = true
-            // configuración inicial silenciosa; el último comando limpia la pantalla
-            // OJO: en sh "&;" es un error de sintaxis, por eso la tarea en segundo plano termina en "& " y no en "&;"
-            let net = "{ ip link set eth0 up; udhcpc -i eth0 -q -n; } >/dev/null 2>&1 & "
-            let setup = "stty -echo; export TERM=xterm-256color LANG=C.UTF-8; stty cols \(cols) rows \(rows); hostname shelldock-linux; "
-                + net
-                + "modprobe virtiofs 2>/dev/null; mkdir -p /mnt/mac; mount -t virtiofs mac /mnt/mac 2>/dev/null; "
-                + "alias ll='ls -la'; PS1='\\[\\e[1;32m\\]\\u@shelldock-linux\\[\\e[0m\\]:\\[\\e[1;34m\\]\\w\\[\\e[0m\\]# '; "
-                + "stty echo; clear; echo \"Alpine Linux $(cat /etc/alpine-release) · $(uname -m) · carpeta del Mac en /mnt/mac · «apk add <paquete>» instala software\""
+            let setup = MiniLinuxPersistence.setupLine(cols: cols, rows: rows)
             vm.send(Array((setup + "\r").utf8))
         }
     }
@@ -86,7 +80,7 @@ final class VMConsoleTransport: ByteTransport {
     func close() {
         closed = true
         vm.send([0x03])
-        vm.send(Array("poweroff\r".utf8))
+        vm.send(Array("shelldock-save; poweroff\r".utf8))      // guarda el estado antes de apagar
         let machine = vm
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { if machine.isRunning { machine.stop(force: true) } }
     }

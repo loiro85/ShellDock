@@ -61,7 +61,7 @@ final class RemoteMonitor: ObservableObject {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: SSHLauncher.sshPath)
         p.arguments = SSHLauncher.commonOptions(s, hostKeyPolicy: hostKeyPolicy, master: false)
-            + SSHLauncher.targetArguments(s) + ["-o", "BatchMode=yes", "-o", "ConnectTimeout=8", "-T", s.host, "sh"]
+            + SSHLauncher.targetArguments(s) + ["-o", "BatchMode=yes", "-o", "ConnectTimeout=8", "-T", "--", s.host, "sh"]
         let input = Pipe(), out = Pipe()
         p.standardInput = input; p.standardOutput = out; p.standardError = Pipe()
         do { try p.run() } catch { return nil }

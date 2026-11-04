@@ -89,9 +89,10 @@ final class FTPClient: RemoteFS, @unchecked Sendable {
         return f
     }
 
-    func mkdir(_ path: String, mode: UInt32) async throws { _ = try await curl([baseURL("/", dir: true), "-Q", "MKD \(path)", "--list-only"]) }
-    func rename(_ from: String, to: String) async throws { _ = try await curl([baseURL("/", dir: true), "-Q", "-RNFR \(from)", "-Q", "-RNTO \(to)", "--list-only"]) }
-    func chmod(_ path: String, mode: UInt32) async throws { _ = try await curl([baseURL("/", dir: true), "-Q", "SITE CHMOD \(String(mode & 0o7777, radix: 8)) \(path)", "--list-only"]) }
+    private func check(_ paths: String...) throws { for p in paths where !SessionSafety.isSafeFTPPath(p) { throw SFTPError.protocolError("Ruta no válida") } }
+    func mkdir(_ path: String, mode: UInt32) async throws { try check(path); _ = try await curl([baseURL("/", dir: true), "-Q", "MKD \(path)", "--list-only"]) }
+    func rename(_ from: String, to: String) async throws { try check(from, to); _ = try await curl([baseURL("/", dir: true), "-Q", "-RNFR \(from)", "-Q", "-RNTO \(to)", "--list-only"]) }
+    func chmod(_ path: String, mode: UInt32) async throws { try check(path); _ = try await curl([baseURL("/", dir: true), "-Q", "SITE CHMOD \(String(mode & 0o7777, radix: 8)) \(path)", "--list-only"]) }
 
     func removeRecursive(_ file: RemoteFile) async throws {
         if file.isDirectory {
@@ -138,7 +139,7 @@ final class FTPClient: RemoteFS, @unchecked Sendable {
             while idx < line.endIndex, line[idx] == " " { idx = line.index(after: idx) }
             var name = String(line[idx...])
             if first == "l", let r = name.range(of: " -> ") { name = String(name[name.startIndex..<r.lowerBound]) }
-            if name == "." || name == ".." || name.isEmpty { continue }
+            if !SessionSafety.isSafeRemoteName(name) { continue }
             var comps = DateComponents(year: year, month: mi + 1, day: day)
             let t = String(f[7])
             if t.contains(":") { let hm = t.split(separator: ":").compactMap { Int($0) }; comps.hour = hm.first; comps.minute = hm.count > 1 ? hm[1] : 0 }
