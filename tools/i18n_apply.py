@@ -43,6 +43,9 @@ def process(path):
         ln = src.count("\n", 0, l.start) + 1; line = lines[ln - 1].strip()
         key = l.key(); ctx = context(src, l)
         if not re.search(r"[A-Za-zÁÉÍÓÚáéíóúñÑ]{2,}", key) and not l.has_interp: continue
+        if src[max(0, l.start - 3):l.start] == "tr(":      # ya envuelta
+            if not only_noise(key): keys.append(key)
+            continue
         if ctx == "view":
             if only_noise(key): continue
             keys.append(key)

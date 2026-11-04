@@ -82,7 +82,7 @@ struct NetworkToolsView: View {
                     Text(PortScanner.services[p] ?? "").foregroundStyle(.secondary)
                 }
             }
-            Text(scanning ? "Escaneando…" : "\(openPorts.count) puertos abiertos").font(.caption).foregroundStyle(.secondary)
+            Text(scanning ? tr("Escaneando…") : "\(openPorts.count) puertos abiertos").font(.caption).foregroundStyle(.secondary)
         }
     }
 
@@ -117,7 +117,7 @@ struct NetworkToolsView: View {
                     Button("Escanear puertos") { scanHost = h.ip; page = 1 }.buttonStyle(.borderless).font(.caption)
                 }
             }
-            Text(netScanning ? "Buscando…" : (HostScanner.addresses(cidr: cidr) == nil && !cidr.isEmpty ? "Red no válida o demasiado grande (máximo /22)" : "\(netHosts.count) equipos responden")).font(.caption).foregroundStyle(.secondary)
+            Text(netScanning ? tr("Buscando…") : (HostScanner.addresses(cidr: cidr) == nil && !cidr.isEmpty ? tr("Red no válida o demasiado grande (máximo /22)") : "\(netHosts.count) equipos responden")).font(.caption).foregroundStyle(.secondary)
         }
         .onAppear { if cidr.isEmpty { cidr = Self.guessLocalNetwork() } }
     }
@@ -143,7 +143,7 @@ struct NetworkToolsView: View {
             Text("Enciende un equipo de la red local enviando un «paquete mágico» a su dirección MAC.").foregroundStyle(.secondary)
             HStack {
                 TextField("MAC: AA:BB:CC:DD:EE:FF", text: $mac).textFieldStyle(.roundedBorder).frame(width: 300)
-                Button("Enviar") { wolMessage = WakeOnLAN.send(mac: mac) ? "Paquete enviado" : "MAC no válida o envío fallido" }.disabled(mac.isEmpty)
+                Button("Enviar") { wolMessage = WakeOnLAN.send(mac: mac) ? tr("Paquete enviado") : tr("MAC no válida o envío fallido") }.disabled(mac.isEmpty)
             }
             Text(wolMessage).font(.caption).foregroundStyle(.secondary)
             Spacer()

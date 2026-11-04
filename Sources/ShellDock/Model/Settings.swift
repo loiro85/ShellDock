@@ -20,6 +20,7 @@ struct AppSettingsData: Codable {
     var highlightKeywords = true
     var internalEditor = true
     var remoteMonitor = true
+    var language = Loc.defaultCode      // inglés por defecto
 
     init() {}
 
@@ -33,7 +34,7 @@ struct AppSettingsData: Codable {
         get(.confirmClose, &confirmClose); get(.hostKeyPolicy, &hostKeyPolicy); get(.defaultShell, &defaultShell)
         get(.logSessions, &logSessions); get(.terminalBell, &terminalBell); get(.keepToolboxInPath, &keepToolboxInPath)
         get(.sftpPanelWidth, &sftpPanelWidth); get(.sidebarVisible, &sidebarVisible)
-        get(.highlightKeywords, &highlightKeywords); get(.internalEditor, &internalEditor); get(.remoteMonitor, &remoteMonitor)
+        get(.highlightKeywords, &highlightKeywords); get(.internalEditor, &internalEditor); get(.remoteMonitor, &remoteMonitor); get(.language, &language)
     }
 }
 

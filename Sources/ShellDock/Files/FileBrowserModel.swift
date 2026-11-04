@@ -74,7 +74,7 @@ final class FileBrowserModel: ObservableObject {
                 let alive = await Task.detached { SSHLauncher.masterIsAlive(s, hostKeyPolicy: policy) }.value
                 if alive || (selfAuth && waited >= 2) { break }
                 waited += 1
-                if waited > 600 { await MainActor.run { self?.state = .failed("No se detectó la conexión SSH") }; return }
+                if waited > 600 { await MainActor.run { self?.state = .failed(tr("No se detectó la conexión SSH")) }; return }
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
             }
             guard !Task.isCancelled else { return }
@@ -164,14 +164,14 @@ final class FileBrowserModel: ObservableObject {
     func makeFolder(_ name: String) { run("Crear carpeta") { try await $0.mkdir(self.path + (self.path == "/" ? "" : "/") + name, mode: 0o755) } }
 
     func rename(_ f: RemoteFile, to name: String) {
-        run("Renombrar") { try await $0.rename(f.path, to: (f.path as NSString).deletingLastPathComponent + "/" + name) }
+        run(tr("Renombrar")) { try await $0.rename(f.path, to: (f.path as NSString).deletingLastPathComponent + "/" + name) }
     }
 
     func delete(_ files: [RemoteFile]) {
-        run("Eliminar") { c in for f in files { try await c.removeRecursive(f) } }
+        run(tr("Eliminar")) { c in for f in files { try await c.removeRecursive(f) } }
     }
 
-    func chmod(_ f: RemoteFile, mode: UInt32) { run("Permisos") { try await $0.chmod(f.path, mode: mode) } }
+    func chmod(_ f: RemoteFile, mode: UInt32) { run(tr("Permisos")) { try await $0.chmod(f.path, mode: mode) } }
 
     func copyPath(_ f: RemoteFile) {
         NSPasteboard.general.clearContents()
@@ -283,7 +283,7 @@ final class FileBrowserModel: ObservableObject {
         p.canChooseFiles = false
         p.canChooseDirectories = true
         p.canCreateDirectories = true
-        p.prompt = "Descargar aquí"
+        p.prompt = tr("Descargar aquí")
         if p.runModal() == .OK, let u = p.url { download(files, to: u) }
     }
 
@@ -291,7 +291,7 @@ final class FileBrowserModel: ObservableObject {
         let p = NSOpenPanel()
         p.allowsMultipleSelection = true
         p.canChooseDirectories = true
-        p.prompt = "Subir"
+        p.prompt = tr("Subir")
         if p.runModal() == .OK { upload(p.urls) }
     }
 
@@ -318,7 +318,7 @@ final class FileBrowserModel: ObservableObject {
     /// Descarga el archivo y lo abre en el editor integrado (se guarda con ⌘S).
     func editInternal(_ f: RemoteFile) {
         guard let c = client else { return }
-        if f.size > 8 * 1024 * 1024 { message = "\(f.name) pesa más de 8 MB: se abre con la app del sistema"; edit(f); return }
+        if f.size > 8 * 1024 * 1024 { message = tr("%@ pesa más de 8 MB: se abre con la app del sistema", "\(f.name)"); edit(f); return }
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("shelldock-edit-\(UUID().uuidString.prefix(8))")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         let local = dir.appendingPathComponent(f.name)
@@ -327,7 +327,7 @@ final class FileBrowserModel: ObservableObject {
             guard let data = try? Data(contentsOf: local) else { return }
             await MainActor.run {
                 guard let text = String(data: data, encoding: .utf8) else {
-                    self.message = "\(f.name) no es texto UTF-8: se abre con la app del sistema"
+                    self.message = tr("%@ no es texto UTF-8: se abre con la app del sistema", "\(f.name)")
                     NSWorkspace.shared.open(local); self.watch(local: local, remote: f.path, client: c); return
                 }
                 self.editorDoc = EditorDoc(name: f.name, remotePath: f.path, local: local, text: text)

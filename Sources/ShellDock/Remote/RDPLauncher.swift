@@ -26,11 +26,11 @@ enum RDPLauncher {
         let safe = SessionSafety.stripControl(s.name).replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: "..", with: "_")
         let url = dir.appendingPathComponent("\(safe).rdp")
         do { try contents(for: s).write(to: url, atomically: true, encoding: .utf8) }
-        catch { return "RDP: no se pudo crear el archivo (\(error.localizedDescription))" }
+        catch { return tr("RDP: no se pudo crear el archivo (%@)", "\(error.localizedDescription)") }
         guard let app = NSWorkspace.shared.urlForApplication(toOpen: url) else {
-            return "RDP: instala «Windows App» (Mac App Store) para abrir sesiones de escritorio remoto"
+            return tr("RDP: instala «Windows App» (Mac App Store) para abrir sesiones de escritorio remoto")
         }
         NSWorkspace.shared.open([url], withApplicationAt: app, configuration: NSWorkspace.OpenConfiguration())
-        return "RDP: abierto con \(app.deletingPathExtension().lastPathComponent)"
+        return tr("RDP: abierto con %@", "\(app.deletingPathExtension().lastPathComponent)")
     }
 }

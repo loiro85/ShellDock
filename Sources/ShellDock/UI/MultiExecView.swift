@@ -83,7 +83,7 @@ struct MultiExecInput: View {
                 KeyCatcher(onText: { state.send($0, toAll: true) }, focused: $focused)
                     .frame(maxWidth: .infinity, minHeight: 28, maxHeight: 28)
                     .overlay(alignment: .leading) {
-                        Text("Haz clic y teclea: se escribe en \(state.multiTargets.count) terminal\(state.multiTargets.count == 1 ? "" : "es") (⌘V pega, Ctrl-C interrumpe)")
+                        Text(tr("Haz clic y teclea: se escribe en %@ terminal(es) (⌘V pega, Ctrl-C interrumpe)", "\(state.multiTargets.count)"))
                             .font(.system(size: 12, design: .monospaced)).foregroundStyle(.secondary).padding(.leading, 8).allowsHitTesting(false)
                     }
                     .background(RoundedRectangle(cornerRadius: 6).fill(Color.black.opacity(0.25)))

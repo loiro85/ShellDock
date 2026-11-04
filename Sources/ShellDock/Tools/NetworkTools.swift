@@ -27,11 +27,11 @@ final class CommandStream: ObservableObject {
             pipe.fileHandleForReading.readabilityHandler = nil
             Task { @MainActor in
                 self?.running = false
-                self?.output += "\n[terminado con código \(proc.terminationStatus)]\n"
+                self?.output += tr("\n[terminado con código %@]\n", "\(proc.terminationStatus)")
             }
         }
         do { try p.run(); process = p; running = true }
-        catch { output += "No se pudo ejecutar: \(error.localizedDescription)\n" }
+        catch { output += tr("No se pudo ejecutar: %@\n", "\(error.localizedDescription)") }
     }
 
     func stop() {
@@ -50,10 +50,10 @@ enum NetworkTool: String, CaseIterable, Identifiable {
         case .traceroute: return "Traceroute"
         case .dns: return "DNS (dig)"
         case .whois: return "Whois"
-        case .interfaces: return "Interfaces de red"
-        case .routes: return "Tabla de rutas"
-        case .connections: return "Conexiones activas"
-        case .arp: return "Tabla ARP"
+        case .interfaces: return tr("Interfaces de red")
+        case .routes: return tr("Tabla de rutas")
+        case .connections: return tr("Conexiones activas")
+        case .arp: return tr("Tabla ARP")
         }
     }
 

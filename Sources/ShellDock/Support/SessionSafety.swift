@@ -7,23 +7,23 @@ enum SessionSafety {
     private static let hostChars = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: ".-_:%[]"))
 
     static func hostError(_ h: String) -> String? {
-        if h.isEmpty { return "Falta el host" }
-        if h.hasPrefix("-") { return "El host no puede empezar por «-»" }
-        if h.count > 255 { return "Host demasiado largo" }
-        if h.unicodeScalars.contains(where: { !hostChars.contains($0) }) { return "El host contiene caracteres no válidos" }
+        if h.isEmpty { return tr("Falta el host") }
+        if h.hasPrefix("-") { return tr("El host no puede empezar por «-»") }
+        if h.count > 255 { return tr("Host demasiado largo") }
+        if h.unicodeScalars.contains(where: { !hostChars.contains($0) }) { return tr("El host contiene caracteres no válidos") }
         return nil
     }
 
     static func userError(_ u: String) -> String? {
-        if u.hasPrefix("-") { return "El usuario no puede empezar por «-»" }
-        if u.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) || CharacterSet.newlines.contains($0) }) { return "El usuario contiene caracteres no válidos" }
+        if u.hasPrefix("-") { return tr("El usuario no puede empezar por «-»") }
+        if u.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) || CharacterSet.newlines.contains($0) }) { return tr("El usuario contiene caracteres no válidos") }
         return nil
     }
 
     static func jumpError(_ j: String) -> String? {
         let t = j.trimmingCharacters(in: .whitespaces)
         if t.isEmpty { return nil }
-        if t.hasPrefix("-") || t.unicodeScalars.contains(where: { CharacterSet.whitespacesAndNewlines.contains($0) || CharacterSet.controlCharacters.contains($0) }) { return "Salto (ProxyJump) no válido" }
+        if t.hasPrefix("-") || t.unicodeScalars.contains(where: { CharacterSet.whitespacesAndNewlines.contains($0) || CharacterSet.controlCharacters.contains($0) }) { return tr("Salto (ProxyJump) no válido") }
         return nil
     }
 
@@ -45,9 +45,9 @@ enum SessionSafety {
     /// Host de las herramientas de red (ping, dig…): sin espacios ni «-» inicial.
     static func toolHostError(_ h: String) -> String? {
         let t = h.trimmingCharacters(in: .whitespaces)
-        if t.isEmpty { return "Escribe un host" }
-        if t.hasPrefix("-") || t.hasPrefix("+") || t.hasPrefix("@") { return "Host no válido" }
-        if t.unicodeScalars.contains(where: { CharacterSet.whitespacesAndNewlines.contains($0) || CharacterSet.controlCharacters.contains($0) }) { return "Host no válido" }
+        if t.isEmpty { return tr("Escribe un host") }
+        if t.hasPrefix("-") || t.hasPrefix("+") || t.hasPrefix("@") { return tr("Host no válido") }
+        if t.unicodeScalars.contains(where: { CharacterSet.whitespacesAndNewlines.contains($0) || CharacterSet.controlCharacters.contains($0) }) { return tr("Host no válido") }
         return nil
     }
 }
@@ -57,7 +57,7 @@ extension Session {
     var validationError: String? {
         if kind == .browser {
             let t = host.trimmingCharacters(in: .whitespaces).lowercased()
-            if t.contains("://") && !(t.hasPrefix("http://") || t.hasPrefix("https://")) { return "Solo se admiten direcciones http y https" }
+            if t.contains("://") && !(t.hasPrefix("http://") || t.hasPrefix("https://")) { return tr("Solo se admiten direcciones http y https") }
             return nil
         }
         guard kind.needsHost else { return nil }

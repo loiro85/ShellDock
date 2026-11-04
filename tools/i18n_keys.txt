@@ -99,6 +99,7 @@ Hay cambios sin guardar
 Guardar y cerrar
 Descartar cambios
 alias ll='ls -la'; PS1='\\[\\e[1;32m\\]\\u@shelldock-linux\\[\\e[0m\\]:\\[\\e[1;34m\\]\\w\\[\\e[0m\\]# '; 
+Mac en /mnt/mac · «apk add <paquete>» instala y se conserva
 Este Mac no admite máquinas virtuales (Virtualization.framework).
 No se pudo preparar la imagen de Alpine: %@
 Configuración de la VM no válida: %@
@@ -135,16 +136,22 @@ Autenticación VNC rechazada%@
 conexión cerrada
 Solo se admiten direcciones http y https
 Falta el host
+El host no puede empezar por «-»
 Host demasiado largo
 El host contiene caracteres no válidos
+El usuario no puede empezar por «-»
 El usuario contiene caracteres no válidos
+Salto (ProxyJump) no válido
 Escribe un host
 Host no válido
+Conexión cerrada
+— Reconectando… —
 Conectando…
 Conectado
 Cerrada
 señal
 Terminó con código %@
+Reconectando en 3 s…
 No se puede abrir %@: %@
 Puerto cerrado
 \n[terminado con código %@]\n
@@ -183,7 +190,7 @@ Terminales, SSH, SFTP, túneles y mucho más, sin límites.
 No hay terminales abiertas
 Exclude
 MultiExec
-Haz clic y teclea: se escribe en %@ terminal%@ (⌘V pega, Ctrl-C interrumpe)
+Haz clic y teclea: se escribe en %@ terminal(es) (⌘V pega, Ctrl-C interrumpe)
 Marcar todas
 Excluir todas
 Diagnóstico
@@ -300,6 +307,9 @@ Tema
 Predeterminado
 Tamaño de fuente: predeterminado
 Tamaño de fuente: %@
+Idioma
+Idioma de la interfaz
+Los menús del sistema cambian al reiniciar ShellDock.
 Fuente
 Tamaño: %@
 Tema de color

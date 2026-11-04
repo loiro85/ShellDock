@@ -30,7 +30,7 @@ struct TextEditorSheet: View {
         VStack(spacing: 0) {
             HStack {
                 Image(systemName: "doc.text")
-                Text(doc.name).font(.headline) + Text(dirty ? "  ● sin guardar" : "").foregroundColor(.orange)
+                Text(doc.name).font(.headline) + Text(dirty ? tr("  ● sin guardar") : "").foregroundColor(.orange)
                 Text(doc.remotePath).font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.head)
                 Spacer()
                 Button("Guardar") { onSave(text); saved = text }.keyboardShortcut("s", modifiers: .command).disabled(!dirty)
@@ -39,7 +39,7 @@ struct TextEditorSheet: View {
             Divider()
             TextEditor(text: $text).font(.system(size: 13, design: .monospaced))
             Divider()
-            HStack { Text("\(lines) líneas · \(text.utf8.count) bytes · UTF-8"); Spacer() }
+            HStack { Text(tr("%@ líneas · %@ bytes · UTF-8", "\(lines)", "\(text.utf8.count)")); Spacer() }
                 .font(.caption).foregroundStyle(.secondary).padding(.horizontal, 10).padding(.vertical, 4)
         }
         .frame(minWidth: 720, minHeight: 480)

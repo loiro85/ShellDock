@@ -31,17 +31,17 @@ enum MiniLinuxPersistence {
         + "modprobe virtiofs 2>/dev/null; mkdir -p /mnt/mac /persist; mount -t virtiofs mac /mnt/mac 2>/dev/null; "
         + "mount -t virtiofs persist /persist 2>/dev/null && . /persist/\(scriptName); "
         + "alias ll='ls -la'; PS1='\\[\\e[1;32m\\]\\u@shelldock-linux\\[\\e[0m\\]:\\[\\e[1;34m\\]\\w\\[\\e[0m\\]# '; "
-        + "stty echo; clear; echo \"Alpine Linux $(cat /etc/alpine-release) · $(uname -m) · Mac en /mnt/mac · «apk add <paquete>» instala y se conserva\""
+        + "stty echo; clear; echo \"Alpine Linux $(cat /etc/alpine-release) · $(uname -m) · " + tr("Mac en /mnt/mac · «apk add <paquete>» instala y se conserva") + "\""
     }
 
-    static let initScript = """
+    static var initScript: String { """
     # ShellDock Mini Linux: red, repositorios y estado persistente (generado por la app; no lo edites)
     P=/persist
-    echo "· red…"
+    echo "\(tr("· red…"))"
     ip link set eth0 up
     udhcpc -i eth0 -q -n -t 5 >/dev/null 2>&1
     if [ -f $P/state.tar ]; then
-      echo "· restaurando tu configuración y archivos…"
+      echo "\(tr("· restaurando tu configuración y archivos…"))"
       tar xf $P/state.tar -C / 2>/dev/null
     fi
     V=$(cut -d. -f1,2 /etc/alpine-release)
@@ -66,7 +66,7 @@ enum MiniLinuxPersistence {
     WRAP
     chmod +x /usr/local/bin/shelldock-save /usr/local/sbin/apk
     if grep -qvE '^(alpine-base|alpine-baselayout|busybox|alpine-keys|apk-tools|openrc|musl-utils)$' /etc/apk/world 2>/dev/null && [ -n "$(ls $P/cache 2>/dev/null)" ]; then
-      echo "· reinstalando tus paquetes…"
+      echo "\(tr("· reinstalando tus paquetes…"))"
       /sbin/apk update -q >/dev/null 2>&1
       /sbin/apk fix -q 2>&1 | tail -n 3
     fi
@@ -74,5 +74,5 @@ enum MiniLinuxPersistence {
     echo '* * * * * /usr/local/bin/shelldock-save' > /etc/crontabs/root
     crond -b 2>/dev/null
     /usr/local/bin/shelldock-save
-    """
+    """ }
 }

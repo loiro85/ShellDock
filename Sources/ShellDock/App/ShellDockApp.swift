@@ -11,6 +11,8 @@ struct ShellDockApp: App {
         Window("ShellDock", id: "main") {
             MainView()
                 .environmentObject(state)
+                .environment(\.locale, Loc.locale)
+                .id(state.language)
                 .frame(minWidth: 980, minHeight: 600)
                 .onAppear { delegate.attach(state) }
         }
@@ -20,6 +22,8 @@ struct ShellDockApp: App {
             SettingsView()
                 .environmentObject(state)
                 .environmentObject(state.settings)
+                .environment(\.locale, Loc.locale)
+                .id(state.language)
         }
     }
 }
@@ -35,39 +39,39 @@ struct AppCommands: Commands {
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
-            Button("Nueva terminal local") { state.openLocal() }.keyboardShortcut("t", modifiers: .command)
-            Button("Mini Linux interno") { state.openMiniLinux() }.keyboardShortcut("l", modifiers: [.command, .option])
-            Button("Nueva sesión…") { state.editing = Session() }.keyboardShortcut("n", modifiers: .command)
-            Button("Conexión rápida…") { NotificationCenter.default.post(name: .focusQuickConnect, object: nil) }.keyboardShortcut("k", modifiers: .command)
+            Button(tr("Nueva terminal local")) { state.openLocal() }.keyboardShortcut("t", modifiers: .command)
+            Button(tr("Mini Linux interno")) { state.openMiniLinux() }.keyboardShortcut("l", modifiers: [.command, .option])
+            Button(tr("Nueva sesión…")) { state.editing = Session() }.keyboardShortcut("n", modifiers: .command)
+            Button(tr("Conexión rápida…")) { NotificationCenter.default.post(name: .focusQuickConnect, object: nil) }.keyboardShortcut("k", modifiers: .command)
             Divider()
-            Button("Cerrar pestaña") { if let id = state.selectedTabID { state.closeTab(id) } }.keyboardShortcut("w", modifiers: .command)
-            Button("Reconectar pestaña") { state.selectedTab?.reconnect() }.keyboardShortcut("r", modifiers: [.command, .shift])
+            Button(tr("Cerrar pestaña")) { if let id = state.selectedTabID { state.closeTab(id) } }.keyboardShortcut("w", modifiers: .command)
+            Button(tr("Reconectar pestaña")) { state.selectedTab?.reconnect() }.keyboardShortcut("r", modifiers: [.command, .shift])
         }
         CommandGroup(after: .textEditing) {
-            Button("Buscar en la terminal…") { Self.find(.showFindPanel) }.keyboardShortcut("f", modifiers: .command)
-            Button("Resultado siguiente") { Self.find(.next) }.keyboardShortcut("g", modifiers: .command)
-            Button("Resultado anterior") { Self.find(.previous) }.keyboardShortcut("g", modifiers: [.command, .shift])
+            Button(tr("Buscar en la terminal…")) { Self.find(.showFindPanel) }.keyboardShortcut("f", modifiers: .command)
+            Button(tr("Resultado siguiente")) { Self.find(.next) }.keyboardShortcut("g", modifiers: .command)
+            Button(tr("Resultado anterior")) { Self.find(.previous) }.keyboardShortcut("g", modifiers: [.command, .shift])
         }
-        CommandMenu("Pestañas") {
-            Button("Pestaña siguiente") { state.selectNext(1) }.keyboardShortcut("]", modifiers: [.command, .shift])
-            Button("Pestaña anterior") { state.selectNext(-1) }.keyboardShortcut("[", modifiers: [.command, .shift])
+        CommandMenu(tr("Pestañas")) {
+            Button(tr("Pestaña siguiente")) { state.selectNext(1) }.keyboardShortcut("]", modifiers: [.command, .shift])
+            Button(tr("Pestaña anterior")) { state.selectNext(-1) }.keyboardShortcut("[", modifiers: [.command, .shift])
             Divider()
             ForEach(1...9, id: \.self) { n in
-                Button("Ir a la pestaña \(n)") { if state.tabs.indices.contains(n - 1) { state.select(state.tabs[n - 1].id) } }
+                Button(tr("Ir a la pestaña %@", "\(n)")) { if state.tabs.indices.contains(n - 1) { state.select(state.tabs[n - 1].id) } }
                     .keyboardShortcut(KeyEquivalent(Character("\(n)")), modifiers: .command)
             }
         }
-        CommandMenu("Herramientas") {
-            Toggle("MultiExec (escribir en varias pestañas)", isOn: $state.multiExec).keyboardShortcut("e", modifiers: [.command, .shift])
+        CommandMenu(tr("Herramientas")) {
+            Toggle(tr("MultiExec (escribir en varias pestañas)"), isOn: $state.multiExec).keyboardShortcut("e", modifiers: [.command, .shift])
             Divider()
-            Button("Snippets y macros") { state.showSnippets = true }.keyboardShortcut("m", modifiers: [.command, .shift])
-            Button("Túneles SSH") { state.showTunnels = true }.keyboardShortcut("u", modifiers: [.command, .shift])
-            Button("Herramientas de red") { state.showNetworkTools = true }.keyboardShortcut("n", modifiers: [.command, .shift])
-            Button("Claves SSH") { state.showKeys = true }.keyboardShortcut("k", modifiers: [.command, .shift])
+            Button(tr("Snippets y macros")) { state.showSnippets = true }.keyboardShortcut("m", modifiers: [.command, .shift])
+            Button(tr("Túneles SSH")) { state.showTunnels = true }.keyboardShortcut("u", modifiers: [.command, .shift])
+            Button(tr("Herramientas de red")) { state.showNetworkTools = true }.keyboardShortcut("n", modifiers: [.command, .shift])
+            Button(tr("Claves SSH")) { state.showKeys = true }.keyboardShortcut("k", modifiers: [.command, .shift])
         }
         CommandGroup(after: .sidebar) {
-            Button(state.sidebarVisible ? "Ocultar sesiones" : "Mostrar sesiones") { state.sidebarVisible.toggle() }.keyboardShortcut("b", modifiers: .command)
-            Button(state.showFileBrowser ? "Ocultar panel de archivos" : "Mostrar panel de archivos") { state.showFileBrowser.toggle() }.keyboardShortcut("f", modifiers: [.command, .shift])
+            Button(state.sidebarVisible ? tr("Ocultar sesiones") : tr("Mostrar sesiones")) { state.sidebarVisible.toggle() }.keyboardShortcut("b", modifiers: .command)
+            Button(state.showFileBrowser ? tr("Ocultar panel de archivos") : tr("Mostrar panel de archivos")) { state.showFileBrowser.toggle() }.keyboardShortcut("f", modifiers: [.command, .shift])
         }
     }
 }

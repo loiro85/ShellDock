@@ -41,7 +41,7 @@ struct UtilitiesView: View {
 
     var passwords: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Stepper("Longitud: \(length)", value: $length, in: 4...128)
+            Stepper(tr("Longitud: %@", "\(length)"), value: $length, in: 4...128)
             HStack { Toggle("A-Z", isOn: $upper); Toggle("a-z", isOn: $lower); Toggle("0-9", isOn: $digits); Toggle("Símbolos", isOn: $symbols) }
             HStack {
                 Button("Generar") { generated = Utilities.password(length: length, upper: upper, lower: lower, digits: digits, symbols: symbols) }.keyboardShortcut(.defaultAction)
@@ -81,10 +81,10 @@ struct UtilitiesView: View {
 
     func row(_ name: String, _ enc: String, _ dec: String?) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("\(name) codificado").font(.caption).foregroundStyle(.secondary)
+            Text(tr("%@ codificado", "\(name)")).font(.caption).foregroundStyle(.secondary)
             Text(enc).font(.system(size: 11, design: .monospaced)).textSelection(.enabled).lineLimit(2)
-            Text("\(name) decodificado").font(.caption).foregroundStyle(.secondary)
-            Text(dec ?? "(no válido)").font(.system(size: 11, design: .monospaced)).textSelection(.enabled).lineLimit(2)
+            Text(tr("%@ decodificado", "\(name)")).font(.caption).foregroundStyle(.secondary)
+            Text(dec ?? tr("(no válido)")).font(.system(size: 11, design: .monospaced)).textSelection(.enabled).lineLimit(2)
         }
     }
 
@@ -109,7 +109,7 @@ struct UtilitiesView: View {
         VStack(alignment: .leading, spacing: 10) {
             TextField("Segundos o milisegundos desde 1970", text: $input).textFieldStyle(.roundedBorder)
             Text(Utilities.epochToDate(input) ?? "—").font(.system(size: 13, design: .monospaced)).textSelection(.enabled)
-            Button("Ahora: \(Int(Date().timeIntervalSince1970))") { input = String(Int(Date().timeIntervalSince1970)) }
+            Button(tr("Ahora: %@", "\(Int(Date().timeIntervalSince1970))")) { input = String(Int(Date().timeIntervalSince1970)) }
         }
     }
 }

@@ -19,21 +19,21 @@ struct Ribbon: View {
     /// Los botones van en un ScrollView: si la ventana es estrecha se desplazan en vez de ensanchar toda la interfaz.
     var buttons: some View {
         HStack(spacing: 2) {
-            RibbonButton(icon: "person.crop.rectangle.badge.plus", label: "Sesión", help: "Nueva sesión (⌘N)") { state.editing = Session() }
-            RibbonButton(icon: "apple.terminal", label: "Terminal", help: "Nueva terminal local (⌘T)") { state.openLocal() }
-            RibbonButton(icon: "shippingbox", label: "Mini Linux", help: "Linux interno en una máquina virtual (⌥⌘L)") { state.openMiniLinux() }
-            RibbonButton(icon: "folder.badge.gearshape", label: "SFTP", help: "Nueva sesión SFTP") {
+            RibbonButton(icon: "person.crop.rectangle.badge.plus", label: tr("Sesión"), help: tr("Nueva sesión (⌘N)")) { state.editing = Session() }
+            RibbonButton(icon: "apple.terminal", label: tr("Terminal"), help: "Nueva terminal local (⌘T)") { state.openLocal() }
+            RibbonButton(icon: "shippingbox", label: "Mini Linux", help: tr("Linux interno en una máquina virtual (⌥⌘L)")) { state.openMiniLinux() }
+            RibbonButton(icon: "folder.badge.gearshape", label: "SFTP", help: tr("Nueva sesión SFTP")) {
                 var s = Session(); s.kind = .sftp; s.port = 22; state.editing = s
             }
             Divider().frame(height: 36).padding(.horizontal, 4)
-            RibbonMenu(icon: "wrench.and.screwdriver", label: "Herramientas") {
+            RibbonMenu(icon: "wrench.and.screwdriver", label: tr("Herramientas")) {
                 Button("Herramientas de red") { state.showNetworkTools = true }
                 Button("Claves SSH") { state.showKeys = true }
                 Button("Utilidades (contraseñas, hashes, subred…)") { state.showUtilities = true }
                 Button("Servidor HTTP de archivos") { state.showServers = true }
                 if MasterPassword.isSet { Button("Bloquear ShellDock") { state.locked = true } }
             }
-            RibbonMenu(icon: state.recordingTabID == nil ? "text.badge.checkmark" : "record.circle", label: "Macros") {
+            RibbonMenu(icon: state.recordingTabID == nil ? "text.badge.checkmark" : "record.circle", label: tr("Macros")) {
                 if state.recordingTabID == nil { Button("● Grabar macro") { state.startRecording() } }
                 else { Button("■ Detener y guardar") { state.stopRecording() } }
                 Button("Gestionar macros y snippets…") { state.showSnippets = true }
@@ -42,12 +42,12 @@ struct Ribbon: View {
                     ForEach(state.store.snippets.prefix(15)) { sn in Button("▶ " + sn.name) { state.run(snippet: sn) } }
                 }
             }
-            RibbonButton(icon: "arrow.left.arrow.right.square", label: "Túneles", help: "Túneles SSH") { state.showTunnels = true }
+            RibbonButton(icon: "arrow.left.arrow.right.square", label: tr("Túneles"), help: tr("Túneles SSH")) { state.showTunnels = true }
             Divider().frame(height: 36).padding(.horizontal, 4)
-            RibbonButton(icon: "sidebar.left", label: "Sesiones", help: "Mostrar/ocultar la lista de sesiones (⌘B)", active: state.sidebarVisible) { state.sidebarVisible.toggle() }
-            RibbonButton(icon: "square.grid.2x2", label: "Dividir", help: "Ver todas las terminales a la vez", active: state.tiled) { state.tiled.toggle() }
-            RibbonButton(icon: "dot.radiowaves.left.and.right", label: "MultiExec", help: "Escribir en todas las terminales a la vez", active: state.multiExec) { state.multiExec.toggle() }
-            RibbonButton(icon: "gearshape", label: "Ajustes", help: "Preferencias") { SettingsOpener.open() }
+            RibbonButton(icon: "sidebar.left", label: tr("Sesiones"), help: tr("Mostrar/ocultar la lista de sesiones (⌘B)"), active: state.sidebarVisible) { state.sidebarVisible.toggle() }
+            RibbonButton(icon: "square.grid.2x2", label: tr("Dividir"), help: tr("Ver todas las terminales a la vez"), active: state.tiled) { state.tiled.toggle() }
+            RibbonButton(icon: "dot.radiowaves.left.and.right", label: tr("MultiExec"), help: tr("Escribir en todas las terminales a la vez"), active: state.multiExec) { state.multiExec.toggle() }
+            RibbonButton(icon: "gearshape", label: tr("Ajustes"), help: tr("Preferencias")) { SettingsOpener.open() }
         }
     }
 

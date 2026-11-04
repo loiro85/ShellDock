@@ -56,7 +56,7 @@ final class FTPClient: RemoteFS, @unchecked Sendable {
                 case 7, 6, 28: code = 7               // sin conexión
                 default: code = 4
                 }
-                throw SFTPError.status(code, msg.isEmpty ? "curl terminó con código \(p.terminationStatus)" : msg)
+                throw SFTPError.status(code, msg.isEmpty ? tr("curl terminó con código %@", "\(p.terminationStatus)") : msg)
             }
             return outData
         }.value
@@ -85,7 +85,7 @@ final class FTPClient: RemoteFS, @unchecked Sendable {
         let parent = (path as NSString).deletingLastPathComponent
         let name = (path as NSString).lastPathComponent
         if path == "/" { return RemoteFile(name: "/", path: "/", size: 0, permissions: 0o040755, mtime: Date(), uid: 0, gid: 0) }
-        guard let f = try await list(parent.isEmpty ? "/" : parent).first(where: { $0.name == name }) else { throw SFTPError.status(2, "No existe") }
+        guard let f = try await list(parent.isEmpty ? "/" : parent).first(where: { $0.name == name }) else { throw SFTPError.status(2, tr("No existe")) }
         return f
     }
 

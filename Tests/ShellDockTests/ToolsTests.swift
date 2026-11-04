@@ -547,3 +547,60 @@ final class HostScannerTests: XCTestCase {
         XCTAssertEqual(found.map(\.ip), ["127.0.0.1"])
     }
 }
+
+final class LocalizationTests: XCTestCase {
+    static let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+    static var resources: URL { root.appendingPathComponent("Resources/Localization") }
+    let codes = ["en", "es", "fr", "it", "de", "pt"]
+
+    func table(_ code: String, _ name: String = "Localizable") throws -> [String: String] {
+        let url = Self.resources.appendingPathComponent("\(code).lproj/\(name).strings")
+        return try XCTUnwrap(NSDictionary(contentsOf: url) as? [String: String], "falta \(url.path); ejecuta tools/i18n_build.py")
+    }
+
+    func testAllLanguagesHaveTheSameKeysAndPlaceholders() throws {
+        let base = try table("es")
+        XCTAssertGreaterThan(base.count, 300)
+        for c in codes {
+            let t = try table(c)
+            XCTAssertEqual(Set(t.keys), Set(base.keys), "claves distintas en \(c)")
+            for (k, v) in t {
+                XCTAssertEqual(v.components(separatedBy: "%@").count, k.components(separatedBy: "%@").count, "marcadores en \(c): \(k)")
+                XCTAssertFalse(v.isEmpty, "\(c): vacío para \(k)")
+            }
+        }
+    }
+
+    /// Todo tr("…") del código debe tener traducción: evita que vuelvan a aparecer textos sin localizar.
+    func testEveryTrKeyInSourceIsTranslated() throws {
+        let known = Set(try table("en").keys)
+        let files = FileManager.default.enumerator(at: Self.root.appendingPathComponent("Sources"), includingPropertiesForKeys: nil)!.compactMap { $0 as? URL }.filter { $0.pathExtension == "swift" }
+        let rx = try NSRegularExpression(pattern: #"\btr\("((?:[^"\\]|\\.)*)""#)
+        var missing: [String] = []
+        for f in files where !f.lastPathComponent.hasPrefix("Localization") {
+            let s = try String(contentsOf: f)
+            for m in rx.matches(in: s, range: NSRange(s.startIndex..., in: s)) {
+                let raw = String(s[Range(m.range(at: 1), in: s)!])
+                let key = raw.replacingOccurrences(of: #"\(...)"#, with: "")           // las interpolaciones no llegan a las claves
+                if raw.contains("\\(") { continue }
+                if !known.contains(key) && !key.replacingOccurrences(of: "\\n", with: "\n").isEmpty && !known.contains(key.replacingOccurrences(of: "\\n", with: "\n")) { missing.append("\(f.lastPathComponent): \(key)") }
+            }
+        }
+        XCTAssertTrue(missing.isEmpty, "sin traducir:\n" + missing.joined(separator: "\n"))
+    }
+
+    func testRuntimeLanguageSwitch() {
+        let bundle = Bundle(path: Self.resources.path)!
+        XCTAssertEqual(Loc.set("en", resourceBundle: bundle), "en"); XCTAssertEqual(tr("Cancelar"), "Cancel")
+        Loc.set("fr", resourceBundle: bundle); XCTAssertEqual(tr("Cancelar"), "Annuler")
+        Loc.set("de", resourceBundle: bundle); XCTAssertEqual(tr("Guardar"), "Sichern")
+        Loc.set("es", resourceBundle: bundle); XCTAssertEqual(tr("Cancelar"), "Cancelar")
+        XCTAssertEqual(Loc.set("xx", resourceBundle: bundle), "en", "idioma desconocido → inglés")
+        Loc.set("it", resourceBundle: bundle)
+        XCTAssertEqual(tr("No se abre la sesión: %@", "ssh"), "Impossibile aprire la sessione: ssh")
+        XCTAssertEqual(tr("Texto que no existe %@", "x"), "Texto que no existe x", "sin traducción se muestra la clave")
+        Loc.set("en", resourceBundle: bundle)
+    }
+
+    func testDefaultLanguageIsEnglish() { XCTAssertEqual(Loc.defaultCode, "en"); XCTAssertEqual(AppSettingsData().language, "en") }
+}

@@ -23,7 +23,7 @@ struct SidebarView: View {
 
             List {
                 if query.trimmingCharacters(in: .whitespaces).isEmpty {
-                    Section("Sesiones (\(store.sessions.count))") { FolderTree(parent: nil) }
+                    Section(tr("Sesiones (%@)", "\(store.sessions.count)")) { FolderTree(parent: nil) }
                 } else {
                     Section("Resultados") {
                         ForEach(store.search(query)) { s in SessionRow(session: s, showPath: true) }
@@ -68,9 +68,9 @@ struct SidebarView: View {
             guard let data = try? Data(contentsOf: url) else { return }
             if url.pathExtension.lowercased() == "mxtsessions" || MobaImporter.looksLikeMoba(data) {
                 let n = MobaImporter.importSessions(data, into: store)
-                state.flash("Importadas \(n) sesiones")
+                state.flash(tr("Importadas %@ sesiones", "\(n)"))
             } else {
-                state.flash("Importadas \(store.importData(data)) sesiones")
+                state.flash(tr("Importadas %@ sesiones", "\(store.importData(data))"))
             }
         }
     }
@@ -117,7 +117,7 @@ struct FolderRow: View {
                 for s in state.store.childSessions(of: folder.id) { state.open(session: s) }
             }
             Button("Nueva sesión aquí…") { var s = Session(); s.folderID = folder.id; state.editing = s }
-            Button("Nueva subcarpeta") { state.store.upsert(folder: Folder(name: "Subcarpeta", parentID: folder.id)) }
+            Button("Nueva subcarpeta") { state.store.upsert(folder: Folder(name: tr("Subcarpeta"), parentID: folder.id)) }
             Menu("Color") {
                 Button("Ninguno") { var f = folder; f.colorHex = nil; state.store.upsert(folder: f) }
                 ForEach(Palette.colors, id: \.self) { h in Button(Palette.name(h)) { var f = folder; f.colorHex = h; state.store.upsert(folder: f) } }

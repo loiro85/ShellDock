@@ -16,11 +16,15 @@ APP="$WORK/ShellDock.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/ShellDock"
 [ -f scripts/AppIcon.icns ] && cp scripts/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+python3 tools/i18n_build.py >/dev/null
+cp -R Resources/Localization/*.lproj "$APP/Contents/Resources/"
 VER=$(cat VERSION 2>/dev/null || echo 0.1.0)
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
+  <key>CFBundleDevelopmentRegion</key><string>en</string>
+  <key>CFBundleLocalizations</key><array><string>en</string><string>es</string><string>fr</string><string>it</string><string>de</string><string>pt</string></array>
   <key>CFBundleName</key><string>ShellDock</string>
   <key>CFBundleDisplayName</key><string>ShellDock</string>
   <key>CFBundleIdentifier</key><string>com.oriolbarrientos.shelldock</string>
@@ -32,8 +36,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>LSApplicationCategoryType</key><string>public.app-category.developer-tools</string>
-  <key>NSLocalNetworkUsageDescription</key><string>ShellDock se conecta a servidores de tu red local.</string>
-  <key>NSAppleEventsUsageDescription</key><string>ShellDock pide contraseñas con un diálogo del sistema.</string>
+  <key>NSLocalNetworkUsageDescription</key><string>ShellDock connects to servers on your local network.</string>
+  <key>NSAppleEventsUsageDescription</key><string>ShellDock asks for passwords with a system dialog.</string>
   <key>CFBundleURLTypes</key><array>
     <dict><key>CFBundleURLName</key><string>SSH</string><key>CFBundleURLSchemes</key><array><string>ssh</string><string>telnet</string></array></dict>
   </array>

@@ -56,7 +56,7 @@ enum SSHKeys {
     static func generate(name: String, type: String, bits: Int?, comment: String, passphrase: String, in dir: String = sshDir) -> (Bool, String) {
         try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         let path = dir + "/" + name
-        guard !FileManager.default.fileExists(atPath: path) else { return (false, "Ya existe \(name)") }
+        guard !FileManager.default.fileExists(atPath: path) else { return (false, tr("Ya existe %@", "\(name)")) }
         var args = ["-q", "-t", type, "-f", path, "-N", passphrase, "-C", comment]
         if let b = bits, type == "rsa" || type == "ecdsa" { args += ["-b", String(b)] }
         let (st, out) = run("/usr/bin/ssh-keygen", args)

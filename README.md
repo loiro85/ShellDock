@@ -15,7 +15,7 @@ Abre el `.dmg` y arrastra ShellDock a Aplicaciones, o ejecuta el `.pkg`. Sin Dev
 
 ## Compilar
     scripts/build_app.sh      # genera dist/ShellDock.app (firma ad-hoc con entitlement de virtualización)
-    swift test                # 69 pruebas
+    swift test                # 73 pruebas
 
 ## Limitaciones conocidas
 - El resaltado de palabras clave aún no se aplica a SSH ni a la terminal local (SwiftTerm no permite interceptar su salida).
@@ -24,5 +24,7 @@ Abre el `.dmg` y arrastra ShellDock a Aplicaciones, o ejecuta el `.pkg`. Sin Dev
 - X11 requiere XQuartz.
 - Mini Linux necesita el entitlement `com.apple.security.virtualization`; para distribuir hace falta firmar con Developer ID.
 - Comprobar el nombre «ShellDock» (marca) antes de publicar.
+
+Idiomas: English (predeterminado), Español, Français, Italiano, Deutsch y Português; se cambia en Ajustes → Apariencia → Idioma y se aplica al momento (los menús del sistema, al reiniciar). Para añadir uno, crea `tools/translations/` con la nueva columna y ejecuta `tools/i18n_build.py`.
 
 Documentos: `docs/PLAN.md`, `docs/MOBAXTERM_PARITY.md` (estado real frente a MobaXterm), `docs/SECURITY.md`.

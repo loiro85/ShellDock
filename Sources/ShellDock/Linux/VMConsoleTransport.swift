@@ -41,12 +41,12 @@ final class VMConsoleTransport: ByteTransport {
             guard let self, !self.closed else { return }
             self.onClose?(err)
         }
-        say("Mini Linux (Alpine \(MiniLinuxVM.alpineVersion)) — preparando…")
+        say(tr("Mini Linux (Alpine %@) — preparando…", "\(MiniLinuxVM.alpineVersion)"))
         Task { [weak self] in
             guard let self else { return }
             do {
                 let assets = try await MiniLinuxVM.prepareAssets { msg in Task { @MainActor in self.say(msg) } }
-                self.say("Arrancando la máquina virtual (\(self.vm.cpus) CPU, \(self.vm.memoryMB) MB)…")
+                self.say(tr("Arrancando la máquina virtual (%@ CPU, %@ MB)…", "\(self.vm.cpus)", "\(self.vm.memoryMB)"))
                 try await self.vm.start(assets: assets)
                 self.onOpen?()
             } catch {

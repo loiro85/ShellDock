@@ -12,6 +12,7 @@ final class AppState: ObservableObject {
     @Published var selectedTabID: UUID?
     @Published var multiExec = false
     @Published var tiled = false
+    @Published var language = Loc.defaultCode
     @Published var recordingTabID: UUID?
     private var recorded: [UInt8] = []
     private var keyMonitor: Any?
@@ -39,6 +40,12 @@ final class AppState: ObservableObject {
         let se = settings ?? AppSettings()
         self.store = st
         self.settings = se
+        language = Loc.set(DevMode.enabled ? (ProcessInfo.processInfo.environment["SHELLDOCK_LANG"] ?? se.data.language) : se.data.language)
+        UserDefaults.standard.set([Loc.code], forKey: "AppleLanguages")
+        se.$data.map(\.language).removeDuplicates().dropFirst().sink { [weak self] code in
+            self?.language = Loc.set(code)
+            UserDefaults.standard.set([Loc.code], forKey: "AppleLanguages")      // menús y diálogos del sistema, tras reiniciar
+        }.store(in: &bag)
         se.$data.dropFirst().sink { [weak self] _ in
             guard let self else { return }
             DispatchQueue.main.async { for t in self.tabs { t.appearanceChanged(self.settings) } }
@@ -72,7 +79,7 @@ final class AppState: ObservableObject {
 
     func openLocal() {
         let n = tabs.filter { $0.kind == .local }.count + 1
-        add(makeLocalTab(title: n == 1 ? "Terminal local" : "Terminal local \(n)"))
+        add(makeLocalTab(title: n == 1 ? tr("Terminal local") : tr("Terminal local %@", "\(n)")))
     }
 
     func makeLocalTab(title: String) -> ProcessTab {
@@ -84,7 +91,7 @@ final class AppState: ObservableObject {
     }
 
     func open(session s: Session) {
-        if let problem = s.validationError { toast = "No se abre la sesión: \(problem)"; return }
+        if let problem = s.validationError { toast = tr("No se abre la sesión: %@", "\(problem)"); return }
         switch s.kind {
         case .ssh:
             let data = settings.data
@@ -112,13 +119,13 @@ final class AppState: ObservableObject {
         case .browser:
             add(WebTab(session: s))
         case .mosh:
-            guard let exe = MoshLauncher.executable() else { toast = "Mosh no está instalado: brew install mosh"; return }
+            guard let exe = MoshLauncher.executable() else { toast = tr("Mosh no está instalado: brew install mosh"); return }
             let toolbox = settings.data.keepToolboxInPath
             add(ProcessTab(title: s.name, kind: .mosh, session: s) {
                 LaunchSpec(executable: exe, args: MoshLauncher.arguments(for: s), env: ProcessEnvironment.base(toolbox: toolbox), cwd: NSHomeDirectory(), display: "mosh \(s.host)")
             })
         default:
-            toast = "\(s.kind.title): disponible en una fase posterior"
+            toast = tr("%@: disponible en una fase posterior", "\(s.kind.title)")
         }
     }
 
@@ -165,9 +172,9 @@ final class AppState: ObservableObject {
         if let problem = s.validationError { toast = "Enlace rechazado: \(problem)"; return }
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
-        alert.messageText = "¿Abrir una conexión \(s.kind.title)?"
-        alert.informativeText = "Una página web o aplicación pide conectar a \(s.username.isEmpty ? "" : s.username + "@")\(s.host):\(s.port). Conecta solo si reconoces el servidor."
-        alert.addButton(withTitle: "Conectar"); alert.addButton(withTitle: "Cancelar")
+        alert.messageText = tr("¿Abrir una conexión %@?", "\(s.kind.title)")
+        alert.informativeText = tr("Una página web o aplicación pide conectar a %@%@:%@. Conecta solo si reconoces el servidor.", "\(s.username.isEmpty ? "" : s.username + "@")", "\(s.host)", "\(s.port)")
+        alert.addButton(withTitle: tr("Conectar")); alert.addButton(withTitle: tr("Cancelar"))
         if alert.runModal() == .alertFirstButtonReturn { open(session: s) }
     }
 
@@ -224,11 +231,11 @@ final class AppState: ObservableObject {
     // MARK: grabación de macros
 
     func startRecording() {
-        guard let tab = selectedTab, tab.acceptsInput else { flash("Selecciona una terminal para grabar"); return }
+        guard let tab = selectedTab, tab.acceptsInput else { flash(tr("Selecciona una terminal para grabar")); return }
         recorded = []
         recordingTabID = tab.id
         tab.onUserInput = { [weak self] d in self?.recorded.append(contentsOf: d) }
-        flash("Grabando macro… vuelve a pulsar Macros → Detener")
+        flash(tr("Grabando macro… vuelve a pulsar Macros → Detener"))
     }
 
     func stopRecording() {
@@ -236,8 +243,8 @@ final class AppState: ObservableObject {
         tabs.first { $0.id == id }?.onUserInput = nil
         recordingTabID = nil
         let text = MacroRecorder.text(from: recorded)
-        guard !text.isEmpty else { flash("Macro vacía: no se guardó"); return }
-        var sn = Snippet(); sn.name = "Macro \(Date().formatted(date: .omitted, time: .standard))"; sn.text = text
+        guard !text.isEmpty else { flash(tr("Macro vacía: no se guardó")); return }
+        var sn = Snippet(); sn.name = tr("Macro %@", "\(Date().formatted(date: .omitted, time: .standard))"); sn.text = text
         store.snippets.append(sn)
         flash("Macro guardada: \(sn.name)")
     }

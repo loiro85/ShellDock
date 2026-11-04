@@ -9,9 +9,9 @@ final class TunnelManager: ObservableObject {
         case failed(String)
         var label: String {
             switch self {
-            case .stopped: return "Parado"
-            case .starting: return "Iniciando…"
-            case .running: return "Activo"
+            case .stopped: return tr("Parado")
+            case .starting: return tr("Iniciando…")
+            case .running: return tr("Activo")
             case .failed(let m): return m
             }
         }
@@ -52,7 +52,7 @@ final class TunnelManager: ObservableObject {
                 guard let self, self.procs[id] === proc else { return }
                 self.procs[id] = nil
                 if proc.terminationReason == .exit && proc.terminationStatus != 0 {
-                    self.states[id] = .failed(msg.isEmpty ? "ssh terminó con código \(proc.terminationStatus)" : String(msg.split(separator: "\n").last ?? ""))
+                    self.states[id] = .failed(msg.isEmpty ? tr("ssh terminó con código %@", "\(proc.terminationStatus)") : String(msg.split(separator: "\n").last ?? ""))
                 } else { self.states[id] = .stopped }
             }
         }

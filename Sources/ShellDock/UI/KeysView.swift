@@ -46,10 +46,10 @@ struct KeysView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(k.name).font(.title3.bold())
                     Group {
-                        row("Tipo", "\(k.type) \(k.bits)")
-                        row("Huella", k.fingerprint)
-                        row("Comentario", k.comment)
-                        row("Ruta", k.path)
+                        row(tr("Tipo"), "\(k.type) \(k.bits)")
+                        row(tr("Huella"), k.fingerprint)
+                        row(tr("Comentario"), k.comment)
+                        row(tr("Ruta"), k.path)
                     }
                     if let pub = SSHKeys.publicKey(k) {
                         Text("Clave pública").font(.caption.bold())
@@ -58,11 +58,11 @@ struct KeysView: View {
                     }
                     HStack {
                         Button("Copiar clave pública") {
-                            if let p = SSHKeys.publicKey(k) { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(p, forType: .string); message = "Clave pública copiada" }
+                            if let p = SSHKeys.publicKey(k) { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(p, forType: .string); message = tr("Clave pública copiada") }
                         }.disabled(!k.hasPublic)
                         Button("Añadir al agente") {
                             let (st, o) = SSHKeys.run("/usr/bin/ssh-add", ["--apple-use-keychain", k.path])
-                            message = st == 0 ? "Añadida al agente y al Llavero" : o
+                            message = st == 0 ? tr("Añadida al agente y al Llavero") : o
                         }
                         Button("Mostrar en Finder") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: k.path)]) }
                     }

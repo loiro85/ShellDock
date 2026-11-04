@@ -37,10 +37,10 @@ struct TabButton: View {
 
     func rename() {
         let alert = NSAlert()
-        alert.messageText = "Renombrar pestaña"
+        alert.messageText = tr("Renombrar pestaña")
         let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24)); field.stringValue = tab.title
         alert.accessoryView = field
-        alert.addButton(withTitle: "Renombrar"); alert.addButton(withTitle: "Cancelar")
+        alert.addButton(withTitle: tr("Renombrar")); alert.addButton(withTitle: tr("Cancelar"))
         if alert.runModal() == .alertFirstButtonReturn, !field.stringValue.isEmpty { tab.title = SessionSafety.stripControl(field.stringValue) }
     }
 
@@ -80,7 +80,7 @@ struct TabButton: View {
         .contextMenu {
             if tab.canReconnect { Button("Reconectar") { tab.reconnect() } }
             Button("Renombrar pestaña…") { rename() }
-            if tab.acceptsInput { Button(tab.excluded ? "Incluir en MultiExec" : "Excluir de MultiExec") { tab.excluded.toggle() } }
+            if tab.acceptsInput { Button(tab.excluded ? tr("Incluir en MultiExec") : tr("Excluir de MultiExec")) { tab.excluded.toggle() } }
             Menu("Color de pestaña") {
                 Button("Ninguno") { tab.tintHex = nil }
                 ForEach(Palette.colors, id: \.self) { hex in Button(Palette.name(hex)) { tab.tintHex = hex } }
@@ -97,6 +97,6 @@ struct TabButton: View {
 enum Palette {
     static let colors = ["#ff6b6b", "#ff9f43", "#ffd166", "#7ee787", "#56d4dd", "#6cb6ff", "#d2a8ff", "#ff79c6"]
     static func name(_ hex: String) -> String {
-        ["#ff6b6b": "Rojo", "#ff9f43": "Naranja", "#ffd166": "Amarillo", "#7ee787": "Verde", "#56d4dd": "Turquesa", "#6cb6ff": "Azul", "#d2a8ff": "Violeta", "#ff79c6": "Rosa"][hex] ?? hex
+        ["#ff6b6b": tr("Rojo"), "#ff9f43": tr("Naranja"), "#ffd166": tr("Amarillo"), "#7ee787": tr("Verde"), "#56d4dd": tr("Turquesa"), "#6cb6ff": tr("Azul"), "#d2a8ff": tr("Violeta"), "#ff79c6": tr("Rosa")][hex] ?? hex
     }
 }

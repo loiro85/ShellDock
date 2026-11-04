@@ -19,7 +19,7 @@ struct SessionEditor: View {
         VStack(spacing: 0) {
             HStack {
                 Image(systemName: session.kind.symbol).font(.title2).foregroundStyle(.tint)
-                Text(isNew ? "Nueva sesión" : "Editar sesión").font(.title3.bold())
+                Text(isNew ? tr("Nueva sesión") : tr("Editar sesión")).font(.title3.bold())
                 Spacer()
             }.padding([.horizontal, .top], 16)
 
@@ -90,7 +90,7 @@ struct SessionEditor: View {
             }
             if session.kind.needsHost {
                 Section("Servidor") {
-                    TextField(session.kind == .browser ? "Dirección web (https://…)" : "Host o IP", text: $session.host)
+                    TextField(session.kind == .browser ? tr("Dirección web (https://…)") : tr("Host o IP"), text: $session.host)
                     HStack {
                         TextField("Puerto", value: $session.port, format: .number.grouping(.never)).frame(width: 140)
                         Spacer()
@@ -123,11 +123,11 @@ struct SessionEditor: View {
             if session.kind == .miniLinux {
                 Section("Mini Linux (Alpine en una máquina virtual)") {
                     Stepper(session.vmMemoryMB == 0 ? "Memoria: 1024 MB (predeterminado)" : "Memoria: \(session.vmMemoryMB) MB", value: $session.vmMemoryMB, in: 0...16384, step: 256)
-                    Stepper(session.vmCPUs == 0 ? "CPUs: automático" : "CPUs: \(session.vmCPUs)", value: $session.vmCPUs, in: 0...8)
+                    Stepper(session.vmCPUs == 0 ? tr("CPUs: automático") : "CPUs: \(session.vmCPUs)", value: $session.vmCPUs, in: 0...8)
                     TextField("Carpeta compartida con el Mac (vacío = ~/ShellDock-Linux)", text: $session.sharedFolder)
                     Text("La carpeta se ve dentro de Linux en /mnt/mac. Los paquetes que instales con apk, tu configuración (/etc) y tus archivos de /root y /home se conservan entre arranques.").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     HStack {
-                        Text("Estado guardado: \(ByteCountFormatter.string(fromByteCount: MiniLinuxPersistence.sizeOnDisk, countStyle: .file))").font(.caption)
+                        Text(tr("Estado guardado: %@", "\(ByteCountFormatter.string(fromByteCount: MiniLinuxPersistence.sizeOnDisk, countStyle: .file))")).font(.caption)
                         Spacer()
                         Button("Restablecer Mini Linux…", role: .destructive) { confirmReset = true }
                     }
@@ -168,7 +168,7 @@ struct SessionEditor: View {
         Group {
             Section("Conexión") {
                 TextField("Salto (ProxyJump): usuario@bastion[:puerto]", text: $session.jumpHost)
-                Stepper("Keep-alive cada \(session.keepAlive) s", value: $session.keepAlive, in: 0...600, step: 5)
+                Stepper(tr("Keep-alive cada %@ s", "\(session.keepAlive)"), value: $session.keepAlive, in: 0...600, step: 5)
                 Toggle("Compresión (-C)", isOn: $session.compression)
                 Toggle("Reconectar automáticamente si se cae", isOn: $session.autoReconnect)
             }
@@ -223,9 +223,9 @@ struct SessionEditor: View {
         Section("Apariencia de esta sesión") {
             Picker("Tema", selection: $session.themeName) {
                 Text("Predeterminado").tag("")
-                ForEach(TerminalTheme.all) { Text($0.name).tag($0.name) }
+                ForEach(TerminalTheme.all) { Text(tr($0.name)).tag($0.name) }
             }
-            Stepper(session.fontSize == 0 ? "Tamaño de fuente: predeterminado" : "Tamaño de fuente: \(session.fontSize)", value: $session.fontSize, in: 0...40)
+            Stepper(session.fontSize == 0 ? tr("Tamaño de fuente: predeterminado") : tr("Tamaño de fuente: %@", "\(session.fontSize)"), value: $session.fontSize, in: 0...40)
         }
     }
 

@@ -1,0 +1,3 @@
+/* Generado por tools/i18n_build.py: no editar a mano */
+"NSLocalNetworkUsageDescription" = "ShellDock verbindet sich mit Servern in Ihrem lokalen Netzwerk.";
+"NSAppleEventsUsageDescription" = "ShellDock fragt Passwörter über einen Systemdialog ab.";

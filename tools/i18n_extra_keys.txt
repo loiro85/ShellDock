@@ -1,0 +1,19 @@
+ShellDock Oscuro
+Solarized Oscuro
+Solarized Claro
+Claro clásico
+El host no puede empezar por «-»
+El usuario no puede empezar por «-»
+Salto (ProxyJump) no válido
+Host no válido
+Idioma
+Idioma de la interfaz
+Los menús del sistema cambian al reiniciar ShellDock.
+Conexión cerrada
+— Reconectando… —
+Reconectando en 3 s…
+Haz clic y teclea: se escribe en %@ terminal(es) (⌘V pega, Ctrl-C interrumpe)
+· red…
+· restaurando tu configuración y archivos…
+· reinstalando tus paquetes…
+Mac en /mnt/mac · «apk add <paquete>» instala y se conserva

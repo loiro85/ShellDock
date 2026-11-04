@@ -38,7 +38,7 @@ final class StreamTab: TerminalTab, TerminalViewDelegate {
         transport.onClose = { [weak self] err in
             guard let self, !self.closedByUser else { return }
             self.status = err == nil ? .closed : .failed(err!)
-            self.tv.feed(text: "\r\n\u{1b}[2m[Conexión cerrada\(err.map { ": \($0)" } ?? "")]\u{1b}[0m\r\n")
+            self.tv.feed(text: "\r\n\u{1b}[2m[" + tr("Conexión cerrada") + (err.map { ": \($0)" } ?? "") + "]\u{1b}[0m\r\n")
         }
     }
 
@@ -51,7 +51,7 @@ final class StreamTab: TerminalTab, TerminalViewDelegate {
     override func reconnect() {
         transport.close()
         transport = makeTransport()
-        tv.feed(text: "\r\n\u{1b}[33m— Reconectando… —\u{1b}[0m\r\n")
+        tv.feed(text: "\r\n\u{1b}[33m" + tr("— Reconectando… —") + "\u{1b}[0m\r\n")
         start()
     }
 

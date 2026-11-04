@@ -10,10 +10,10 @@ final class RFBClient: @unchecked Sendable {
         case needsPassword, connection(String), protocolError(String), authFailed(String)
         var errorDescription: String? {
             switch self {
-            case .needsPassword: return "El servidor VNC pide contraseña"
-            case .connection(let m): return "No se pudo conectar: \(m)"
+            case .needsPassword: return tr("El servidor VNC pide contraseña")
+            case .connection(let m): return tr("No se pudo conectar: %@", "\(m)")
             case .protocolError(let m): return "Error de protocolo VNC: \(m)"
-            case .authFailed(let m): return "Autenticación VNC rechazada\(m.isEmpty ? "" : ": \(m)")"
+            case .authFailed(let m): return tr("Autenticación VNC rechazada%@", "\(m.isEmpty ? "" : ": \(m)")")
             }
         }
     }
@@ -129,7 +129,7 @@ final class RFBClient: @unchecked Sendable {
         var got = 0
         while got < n {
             let r = buf.withUnsafeMutableBytes { Darwin.read(fd, $0.baseAddress! + got, n - got) }
-            if r <= 0 { throw RFBError.connection(r == 0 ? "conexión cerrada" : String(cString: strerror(errno))) }
+            if r <= 0 { throw RFBError.connection(r == 0 ? tr("conexión cerrada") : String(cString: strerror(errno))) }
             got += r
         }
         return buf

@@ -121,7 +121,7 @@ struct FileBrowserPanel: View {
         .onTapGesture(count: 2) { model.open(f) }
         .contextMenu {
             let targets = model.selection.contains(f.id) ? selected : [f]
-            Button(f.isDirectory ? "Abrir" : "Editar / abrir") { model.open(f) }
+            Button(f.isDirectory ? tr("Abrir") : tr("Editar / abrir")) { model.open(f) }
             Button("Descargar…") { model.chooseDownloadFolder(for: targets) }
             Divider()
             Button("Renombrar…") { renameText = f.name; renameTarget = f }
@@ -175,12 +175,12 @@ struct PermissionsSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Permisos de \(file.name)").font(.headline)
+            Text(tr("Permisos de %@", "\(file.name)")).font(.headline)
             Grid(alignment: .leading, horizontalSpacing: 20) {
                 GridRow { Text(""); Text("Leer"); Text("Escribir"); Text("Ejecutar") }.font(.caption).foregroundStyle(.secondary)
                 ForEach(0..<3, id: \.self) { r in
                     GridRow {
-                        Text(["Propietario", "Grupo", "Otros"][r])
+                        Text([tr("Propietario"), tr("Grupo"), tr("Otros")][r])
                         ForEach(0..<3, id: \.self) { c in Toggle("", isOn: $bits[r * 3 + c]).labelsHidden().onChange(of: bits) { _ in octal = String(mode, radix: 8) } }
                     }
                 }

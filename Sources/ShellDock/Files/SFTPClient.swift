@@ -55,10 +55,10 @@ enum SFTPError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .status(let c, let m):
-            let base = ["OK", "Fin de fichero", "No existe", "Permiso denegado", "Fallo", "Mensaje mal formado", "Sin conexión", "Conexión perdida", "Operación no soportada"]
-            let name = Int(c) < base.count ? base[Int(c)] : "Error \(c)"
+            let base = ["OK", tr("Fin de fichero"), tr("No existe"), tr("Permiso denegado"), tr("Fallo"), tr("Mensaje mal formado"), tr("Sin conexión"), tr("Conexión perdida"), tr("Operación no soportada")]
+            let name = Int(c) < base.count ? base[Int(c)] : tr("Error %@", "\(c)")
             return m.isEmpty || m == name ? name : "\(name): \(m)"
-        case .closed: return "La conexión SFTP se cerró"
+        case .closed: return tr("La conexión SFTP se cerró")
         case .protocolError(let m): return "Error de protocolo SFTP: \(m)"
         case .launch(let m): return m
         }
@@ -135,7 +135,7 @@ final class SFTPClient: @unchecked Sendable {
         process.standardOutput = stdoutPipe
         process.standardError = stderrPipe
         process.terminationHandler = { [weak self] _ in self?.fail(SFTPError.closed) }
-        do { try process.run() } catch { throw SFTPError.launch("No se pudo lanzar ssh: \(error.localizedDescription)") }
+        do { try process.run() } catch { throw SFTPError.launch(tr("No se pudo lanzar ssh: %@", "\(error.localizedDescription)")) }
         let t = Thread { [weak self] in self?.readLoop() }
         t.name = "sftp-reader"
         t.start()
@@ -207,7 +207,7 @@ final class SFTPClient: @unchecked Sendable {
         let v = versionContinuation
         versionContinuation = nil
         lock.unlock()
-        v?.resume(throwing: SFTPError.launch(errorOutput.isEmpty ? "No se pudo abrir SFTP (¿conexión SSH no disponible?)" : errorOutput))
+        v?.resume(throwing: SFTPError.launch(errorOutput.isEmpty ? tr("No se pudo abrir SFTP (¿conexión SSH no disponible?)") : errorOutput))
         for (_, c) in p { c.resume(throwing: e) }
     }
 
@@ -349,7 +349,7 @@ final class SFTPClient: @unchecked Sendable {
         defer { Task { await self.closeHandle(h) } }
         FileManager.default.createFile(atPath: local.path, contents: nil)
         let fd = open(local.path, O_WRONLY | O_TRUNC)
-        guard fd >= 0 else { throw SFTPError.launch("No se puede escribir \(local.path)") }
+        guard fd >= 0 else { throw SFTPError.launch(tr("No se puede escribir %@", "\(local.path)")) }
         defer { Darwin.close(fd) }
         var done: Int64 = 0
         let chunk = Int64(Self.chunk)
@@ -387,7 +387,7 @@ final class SFTPClient: @unchecked Sendable {
         let perm = (attrs[.posixPermissions] as? NSNumber)?.uint32Value ?? mode
         let h = try await openHandle(remote, flags: 0x2 | 0x8 | 0x10)
         defer { Task { await self.closeHandle(h) } }
-        guard let fh = try? FileHandle(forReadingFrom: local) else { throw SFTPError.launch("No se puede leer \(local.path)") }
+        guard let fh = try? FileHandle(forReadingFrom: local) else { throw SFTPError.launch(tr("No se puede leer %@", "\(local.path)")) }
         defer { try? fh.close() }
         var offset: Int64 = 0
         var done: Int64 = 0
@@ -420,7 +420,7 @@ final class SFTPClient: @unchecked Sendable {
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("sd-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: tmp) }
         let size = try await stat(path).size
-        guard size <= maxBytes else { throw SFTPError.launch("El archivo es demasiado grande para abrirlo aquí") }
+        guard size <= maxBytes else { throw SFTPError.launch(tr("El archivo es demasiado grande para abrirlo aquí")) }
         try await download(remote: path, to: tmp)
         return (try? Data(contentsOf: tmp)) ?? Data()
     }

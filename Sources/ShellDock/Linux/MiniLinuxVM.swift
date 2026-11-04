@@ -29,10 +29,10 @@ final class MiniLinuxVM: NSObject, VZVirtualMachineDelegate {
         case unsupported, download(String), configuration(String), boot(String)
         var errorDescription: String? {
             switch self {
-            case .unsupported: return "Este Mac no admite máquinas virtuales (Virtualization.framework)."
-            case .download(let m): return "No se pudo preparar la imagen de Alpine: \(m)"
-            case .configuration(let m): return "Configuración de la VM no válida: \(m)"
-            case .boot(let m): return "La VM no arrancó: \(m)"
+            case .unsupported: return tr("Este Mac no admite máquinas virtuales (Virtualization.framework).")
+            case .download(let m): return tr("No se pudo preparar la imagen de Alpine: %@", "\(m)")
+            case .configuration(let m): return tr("Configuración de la VM no válida: %@", "\(m)")
+            case .boot(let m): return tr("La VM no arrancó: %@", "\(m)")
             }
         }
     }
@@ -60,12 +60,12 @@ final class MiniLinuxVM: NSObject, VZVirtualMachineDelegate {
         if let bundled = Bundle.main.url(forResource: "alpine-virt", withExtension: "iso", subdirectory: "minilinux") { iso = bundled }
         let fm = FileManager.default
         if !fm.fileExists(atPath: iso.path) {
-            progress("Descargando Alpine Linux (~90 MB, solo la primera vez)…")
+            progress(tr("Descargando Alpine Linux (~90 MB, solo la primera vez)…"))
             let (tmp, resp) = try await URLSession.shared.download(from: isoURL)
             guard (resp as? HTTPURLResponse)?.statusCode == 200 else { throw VMError.download("HTTP \((resp as? HTTPURLResponse)?.statusCode ?? 0)") }
             guard try Self.sha256(of: tmp) == Self.isoSHA256 else {
                 try? fm.removeItem(at: tmp)
-                throw VMError.download("la imagen descargada no coincide con el SHA-256 oficial de Alpine (no se usará)")
+                throw VMError.download(tr("la imagen descargada no coincide con el SHA-256 oficial de Alpine (no se usará)"))
             }
             try? fm.removeItem(at: iso)
             try fm.moveItem(at: tmp, to: iso)
@@ -75,7 +75,7 @@ final class MiniLinuxVM: NSObject, VZVirtualMachineDelegate {
             return try await prepareAssets(progress: progress)
         }
         if !fm.fileExists(atPath: kernel.path) || !fm.fileExists(atPath: initrd.path) {
-            progress("Extrayendo kernel e initramfs…")
+            progress(tr("Extrayendo kernel e initramfs…"))
             for (name, dest) in [("boot/vmlinuz-virt", kernel), ("boot/initramfs-virt", initrd)] {
                 let p = Process()
                 p.executableURL = URL(fileURLWithPath: "/usr/bin/bsdtar")
@@ -84,7 +84,7 @@ final class MiniLinuxVM: NSObject, VZVirtualMachineDelegate {
                 p.standardOutput = try FileHandle(forWritingTo: dest)
                 p.standardError = Pipe()
                 try p.run(); p.waitUntilExit()
-                if p.terminationStatus != 0 { throw VMError.download("no se pudo extraer \(name)") }
+                if p.terminationStatus != 0 { throw VMError.download(tr("no se pudo extraer %@", "\(name)")) }
             }
         }
         try decompressZBootIfNeeded(kernel)
@@ -98,7 +98,7 @@ final class MiniLinuxVM: NSObject, VZVirtualMachineDelegate {
         guard data.count > 0x30, data[4] == 0x7A, data[5] == 0x69, data[6] == 0x6D, data[7] == 0x67 else { return }   // "zimg"
         func le32(_ o: Int) -> Int { Int(data[o]) | Int(data[o + 1]) << 8 | Int(data[o + 2]) << 16 | Int(data[o + 3]) << 24 }
         let off = le32(8), size = le32(12)
-        guard off > 0, size > 0, off + size <= data.count else { throw VMError.download("kernel zboot con cabecera inválida") }
+        guard off > 0, size > 0, off + size <= data.count else { throw VMError.download(tr("kernel zboot con cabecera inválida")) }
         let gz = url.appendingPathExtension("gz")
         try data.subdata(in: off..<(off + size)).write(to: gz)
         let out = url.appendingPathExtension("raw")
@@ -110,7 +110,7 @@ final class MiniLinuxVM: NSObject, VZVirtualMachineDelegate {
         p.standardError = Pipe()
         try p.run(); p.waitUntilExit()
         try? FileManager.default.removeItem(at: gz)
-        guard p.terminationStatus == 0 else { throw VMError.download("no se pudo descomprimir el kernel") }
+        guard p.terminationStatus == 0 else { throw VMError.download(tr("no se pudo descomprimir el kernel")) }
         try? FileManager.default.removeItem(at: url)
         try FileManager.default.moveItem(at: out, to: url)
     }

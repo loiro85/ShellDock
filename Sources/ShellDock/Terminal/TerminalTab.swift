@@ -8,9 +8,9 @@ enum TabStatus: Equatable {
 
     var label: String {
         switch self {
-        case .connecting: return "Conectando…"
-        case .connected: return "Conectado"
-        case .closed: return "Cerrada"
+        case .connecting: return tr("Conectando…")
+        case .connected: return tr("Conectado")
+        case .closed: return tr("Cerrada")
         case .failed(let m): return m
         }
     }
@@ -116,7 +116,7 @@ final class ProcessTab: TerminalTab, LocalProcessTerminalViewDelegate {
     override func reconnect() {
         reconnectTask?.cancel()
         closedByUser = false
-        tv.feed(text: "\r\n\u{1b}[33m— Reconectando… —\u{1b}[0m\r\n")
+        tv.feed(text: "\r\n\u{1b}[33m" + tr("— Reconectando… —") + "\u{1b}[0m\r\n")
         start()
     }
 
@@ -136,11 +136,11 @@ final class ProcessTab: TerminalTab, LocalProcessTerminalViewDelegate {
 
     func processTerminated(source: TerminalView, exitCode: Int32?) {
         guard !closedByUser else { return }
-        let code = exitCode.map(String.init) ?? "señal"
-        status = (exitCode == 0 || exitCode == nil) ? .closed : .failed("Terminó con código \(code)")
+        let code = exitCode.map(String.init) ?? tr("señal")
+        status = (exitCode == 0 || exitCode == nil) ? .closed : .failed(tr("Terminó con código %@", "\(code)"))
         tv.feed(text: "\r\n\u{1b}[2m[Proceso terminado (\(code))]\u{1b}[0m\r\n")
         if let s = session, s.autoReconnect, exitCode != 0 {
-            tv.feed(text: "\u{1b}[2m[Reconectando en 3 s…]\u{1b}[0m\r\n")
+            tv.feed(text: "\u{1b}[2m[" + tr("Reconectando en 3 s…") + "]\u{1b}[0m\r\n")
             reconnectTask = Task { [weak self] in
                 try? await Task.sleep(nanoseconds: 3_000_000_000)
                 guard !Task.isCancelled else { return }

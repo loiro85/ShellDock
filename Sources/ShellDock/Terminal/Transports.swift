@@ -212,7 +212,7 @@ final class SerialTransport: ByteTransport {
 
     func open() {
         fd = Darwin.open(settings.device, O_RDWR | O_NOCTTY | O_NONBLOCK)
-        guard fd >= 0 else { onClose?("No se puede abrir \(settings.device): \(String(cString: strerror(errno)))"); return }
+        guard fd >= 0 else { onClose?(tr("No se puede abrir %@: %@", "\(settings.device)", "\(String(cString: strerror(errno)))")); return }
         var t = termios()
         tcgetattr(fd, &t)
         cfmakeraw(&t)
@@ -239,7 +239,7 @@ final class SerialTransport: ByteTransport {
             var buf = [UInt8](repeating: 0, count: 4096)
             let n = read(self.fd, &buf, buf.count)
             if n > 0 { self.onData?(Array(buf[0..<n])) }
-            else if n == 0 || (n < 0 && errno != EAGAIN && errno != EINTR) { self.shutdown("Puerto cerrado") }
+            else if n == 0 || (n < 0 && errno != EAGAIN && errno != EINTR) { self.shutdown(tr("Puerto cerrado")) }
         }
         src.resume()
         source = src

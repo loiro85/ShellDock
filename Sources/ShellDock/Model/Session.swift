@@ -9,16 +9,16 @@ enum SessionKind: String, Codable, CaseIterable, Identifiable {
         case .ssh: return "SSH"
         case .sftp: return "SFTP"
         case .telnet: return "Telnet"
-        case .tcp: return "TCP crudo"
-        case .serial: return "Serie"
+        case .tcp: return tr("TCP crudo")
+        case .serial: return tr("Serie")
         case .vnc: return "VNC"
         case .rdp: return "RDP"
         case .ftp: return "FTP"
-        case .local: return "Terminal local"
+        case .local: return tr("Terminal local")
         case .miniLinux: return "Mini Linux"
         case .mosh: return "Mosh"
         case .rlogin: return "Rlogin"
-        case .browser: return "Navegador"
+        case .browser: return tr("Navegador")
         }
     }
 
@@ -61,10 +61,10 @@ enum AuthMethod: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .auto: return "Automático"
-        case .password: return "Contraseña"
-        case .key: return "Clave privada"
-        case .agent: return "Agente SSH"
+        case .auto: return tr("Automático")
+        case .password: return tr("Contraseña")
+        case .key: return tr("Clave privada")
+        case .agent: return tr("Agente SSH")
         }
     }
 }
@@ -74,9 +74,9 @@ enum TunnelKind: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .local: return "Local (-L)"
-        case .remote: return "Remoto (-R)"
-        case .dynamic: return "Dinámico SOCKS (-D)"
+        case .local: return tr("Local (-L)")
+        case .remote: return tr("Remoto (-R)")
+        case .dynamic: return tr("Dinámico SOCKS (-D)")
         }
     }
 }
@@ -119,7 +119,7 @@ struct SerialSettings: Codable, Hashable {
 
 struct Session: Codable, Identifiable, Hashable {
     var id = UUID()
-    var name = "Nueva sesión"
+    var name = tr("Nueva sesión")
     var kind: SessionKind = .ssh
     var host = ""
     var port = 22
@@ -170,7 +170,7 @@ struct Session: Codable, Identifiable, Hashable {
         switch kind {
         case .serial: return serial.device
         case .local: return "este Mac"
-        case .miniLinux: return "máquina virtual"
+        case .miniLinux: return tr("máquina virtual")
         default:
             let u = username.isEmpty ? "" : "\(username)@"
             let p = port == kind.defaultPort || port == 0 ? "" : ":\(port)"
@@ -181,7 +181,7 @@ struct Session: Codable, Identifiable, Hashable {
 
 struct Folder: Codable, Identifiable, Hashable {
     var id = UUID()
-    var name = "Carpeta"
+    var name = tr("Carpeta")
     var parentID: UUID?
     var expanded = true
     var colorHex: String?
@@ -189,14 +189,14 @@ struct Folder: Codable, Identifiable, Hashable {
 
 struct Snippet: Codable, Identifiable, Hashable {
     var id = UUID()
-    var name = "Nuevo snippet"
+    var name = tr("Nuevo snippet")
     var text = ""
     var sendReturn = true
 }
 
 struct SavedTunnel: Codable, Identifiable, Hashable {
     var id = UUID()
-    var name = "Túnel"
+    var name = tr("Túnel")
     var sessionID: UUID?
     var tunnel = Tunnel()
 }
